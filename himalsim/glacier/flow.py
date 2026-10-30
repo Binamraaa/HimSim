@@ -47,13 +47,18 @@ def _face_diffusivity(h_face: np.ndarray, grad2: np.ndarray, p: FlowParams) -> n
     return (p.gamma_deformation * h_face ** (n + 2) + p.gamma_sliding * h_face ** n) * grad2 ** ((n - 1) / 2)
 
 
-def sia_fluxes(thickness: np.ndarray, bed: np.ndarray, dx: float, p: FlowParams):
+def sia_fluxes(thickness: np.ndarray, bed: np.ndarray, dx: float, p: FlowParams, domain: np.ndarray | None = None):
     """Ice fluxes on cell faces (m2/yr).
 
     Returns ``(qx, qy, d_max)`` where ``qx`` has shape (ny, nx-1) for the faces
     between columns j and j+1, ``qy`` has shape (ny-1, nx) for faces between rows
     i and i+1, and ``d_max`` is the largest diffusivity (sets the stable time step).
     Positive flux points toward increasing index.
+
+    A face only carries ice if its *upstream* cell (the one with the higher surface)
+    has ice, and, when ``domain`` is given, if both cells are inside it. Faces
+    against bare rock walls or the domain edge are then inactive, so they neither
+    move ice nor shrink the time step.
     """
     h = thickness
     s = bed + h
@@ -66,12 +71,20 @@ def sia_fluxes(thickness: np.ndarray, bed: np.ndarray, dx: float, p: FlowParams)
     ds_dy_xf = 0.5 * (ds_dy_c[:, 1:] + ds_dy_c[:, :-1])
     h_xf = 0.5 * (h[:, 1:] + h[:, :-1])
     d_x = _face_diffusivity(h_xf, ds_dx_xf**2 + ds_dy_xf**2, p)
+    active_x = np.where(ds_dx_xf < 0, h[:, :-1], h[:, 1:]) > 0
+    if domain is not None:
+        active_x &= domain[:, :-1] & domain[:, 1:]
+    d_x = np.where(active_x, d_x, 0.0)
     qx = -d_x * ds_dx_xf
 
     ds_dy_yf = (s[1:, :] - s[:-1, :]) / dx
     ds_dx_yf = 0.5 * (ds_dx_c[1:, :] + ds_dx_c[:-1, :])
     h_yf = 0.5 * (h[1:, :] + h[:-1, :])
     d_y = _face_diffusivity(h_yf, ds_dx_yf**2 + ds_dy_yf**2, p)
+    active_y = np.where(ds_dy_yf < 0, h[:-1, :], h[1:, :]) > 0
+    if domain is not None:
+        active_y &= domain[:-1, :] & domain[1:, :]
+    d_y = np.where(active_y, d_y, 0.0)
     qy = -d_y * ds_dy_yf
 
     d_max = max(float(d_x.max(initial=0.0)), float(d_y.max(initial=0.0)))

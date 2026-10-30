@@ -39,16 +39,20 @@ def perfect_plasticity_thickness(surface: np.ndarray, mask: np.ndarray, dx: floa
                                  margin_taper_m: float = 150.0) -> np.ndarray:
     """Ice thickness (m) inside ``mask``; zero outside.
 
-    - The surface is smoothed over ``smoothing_m`` because ice responds to slopes
-      averaged over several ice thicknesses, not pixel-scale bumps.
+    - The surface is smoothed over ``smoothing_m`` (using glacier cells only) because ice
+      responds to slopes averaged over several ice thicknesses, not pixel-scale bumps.
     - The slope is floored at ``min_slope_deg`` so flat areas don't get unrealistically thick ice.
     - Thickness tapers to zero within ``margin_taper_m`` of the glacier edge.
     """
     if tau is None:
         tau = haeberli_hoelzle_tau(float(np.ptp(surface[mask])))
 
-    filled = np.where(np.isfinite(surface), surface, np.nanmean(surface))
-    smooth = gaussian_filter(filled, sigma=max(smoothing_m / dx, 0.5))
+    # Smooth using glacier cells only (normalised convolution). Including the terrain
+    # beyond the outline would blend ridge crests into the glacier and fake flat, thick ice.
+    sigma = max(smoothing_m / dx, 0.5)
+    inside = mask & np.isfinite(surface)
+    weight = gaussian_filter(inside.astype(np.float64), sigma)
+    smooth = gaussian_filter(np.where(inside, surface, 0.0), sigma) / np.maximum(weight, 1e-6)
     gy, gx = np.gradient(smooth, dx)
     slope = np.arctan(np.hypot(gx, gy))
     slope = np.maximum(slope, np.deg2rad(min_slope_deg))

@@ -14,7 +14,7 @@ import pandas as pd
 
 from himalsim.glacier.climate import ClimateParams, Scenario
 from himalsim.glacier.flow import FlowParams, flux_divergence, limit_outflow, sia_fluxes, stable_timestep
-from himalsim.glacier.smb import annual_smb, equilibrium_line_altitude
+from himalsim.glacier.smb import SmbTable, annual_smb, equilibrium_line_altitude
 
 ICE_THRESHOLD_M = 1.0  # cells thinner than this don't count as glacier for area/extent
 
@@ -50,9 +50,11 @@ class RunResult:
         return float(self.years[gone[0]]) if gone.size else None
 
     def to_frame(self) -> pd.DataFrame:
+        start = self.scenario.start_year
         return pd.DataFrame({
             "scenario": self.scenario.name,
             "year": self.years,
+            "calendar_year": self.years + start if start is not None else np.nan,
             "volume_km3": self.volume / 1e9,
             "volume_pct": 100.0 * self.volume / self.volume[0] if self.volume[0] > 0 else np.nan,
             "area_km2": self.area / 1e6,
@@ -64,6 +66,7 @@ class RunResult:
 
 def simulate(bed: np.ndarray, h0: np.ndarray, dx: float, climate: ClimateParams, scenario: Scenario,
              flow: FlowParams = FlowParams(), accumulation_mask: np.ndarray | None = None,
+             ice_domain: np.ndarray | None = None,
              snapshot_every: int = 5, cfl: float = 0.5, dt_max: float = 1.0,
              progress: Callable[[float], None] | None = None) -> RunResult:
     """Run ``scenario`` from initial thickness ``h0`` on ``bed``.
@@ -72,6 +75,9 @@ def simulate(bed: np.ndarray, h0: np.ndarray, dx: float, climate: ClimateParams,
     zero, so the glacier can still flow downhill and melt there, but no new glaciers
     grow on surrounding peaks. Without this, steep ridges above the ELA would pile up
     snow that in reality avalanches off.
+
+    ``ice_domain`` is where ice may go at all (the glacier's own basin). Its edges act
+    as closed walls, so ice can't spill over the ridges that enclose the glacier.
 
     The time step adapts every step to the stability limit, and steps are
     shortened so that yearly diagnostics land exactly on whole years. Ice that
@@ -82,6 +88,7 @@ def simulate(bed: np.ndarray, h0: np.ndarray, dx: float, climate: ClimateParams,
     h = np.where(np.isfinite(h0), h0, 0.0).astype(np.float64)
     edge = np.zeros(h.shape, dtype=bool)
     edge[0, :] = edge[-1, :] = edge[:, 0] = edge[:, -1] = True
+    smb_table = SmbTable(float(bed.min()) - 10.0, float((bed + h).max()) + 500.0)
 
     rec: dict[str, list[float]] = {k: [] for k in ("years", "volume", "area", "ela", "smb", "hmax")}
     snapshot_years: list[float] = []
@@ -105,10 +112,10 @@ def simulate(bed: np.ndarray, h0: np.ndarray, dx: float, climate: ClimateParams,
     record(t)
     next_record = 1.0
     while t < scenario.years - 1e-9:
-        qx, qy, d_max = sia_fluxes(h, bed, dx, flow)
+        qx, qy, d_max = sia_fluxes(h, bed, dx, flow, ice_domain)
         dt = min(stable_timestep(d_max, dx, cfl, dt_max), next_record - t)
         qx, qy = limit_outflow(qx, qy, h, dx, dt)
-        smb = annual_smb(bed + h, climate, scenario.temp_delta(t), scenario.precip_factor(t))
+        smb = smb_table(bed + h, climate, scenario.temp_delta(t), scenario.precip_factor(t))
         if accumulation_mask is not None:
             smb = np.where(accumulation_mask, smb, np.minimum(smb, 0.0))
 

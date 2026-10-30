@@ -33,6 +33,22 @@ def annual_smb(z: np.ndarray, climate: ClimateParams, temp_delta: float = 0.0, p
     return (accumulation - melt).sum(axis=0) * WE_TO_ICE
 
 
+class SmbTable:
+    """Annual SMB tabulated against elevation, for fast lookups on a whole grid.
+
+    For a given year SMB depends only on elevation, so computing it on a fine elevation
+    axis and interpolating gives the same answer as evaluating every cell, ~50× faster.
+    Elevations outside the axis take the end values.
+    """
+
+    def __init__(self, z_min: float, z_max: float, step: float = 2.0):
+        self.z = np.arange(z_min, z_max + step, step)
+
+    def __call__(self, surface: np.ndarray, climate: ClimateParams, temp_delta: float = 0.0,
+                 precip_factor: float = 1.0) -> np.ndarray:
+        return np.interp(surface, self.z, annual_smb(self.z, climate, temp_delta, precip_factor))
+
+
 def equilibrium_line_altitude(climate: ClimateParams, temp_delta: float = 0.0, precip_factor: float = 1.0,
                               z_range: tuple[float, float] = (2000.0, 9000.0)) -> float:
     """Elevation where SMB = 0. Returns NaN if there is no crossing in ``z_range``."""
@@ -55,17 +71,24 @@ def glacier_wide_smb(surface: np.ndarray, mask: np.ndarray, climate: ClimatePara
 
 
 def calibrate_temperature(surface: np.ndarray, mask: np.ndarray, climate: ClimateParams,
-                          target_smb: float, search: tuple[float, float] = (-15.0, 15.0)) -> ClimateParams:
+                          target_smb: float, search: tuple[float, float] = (-15.0, 15.0),
+                          yearly_forcing: list[tuple[float, float]] | None = None) -> ClimateParams:
     """Shift ``t_annual_ref`` so the glacier-wide SMB equals ``target_smb`` (m ice / yr).
 
     This is the simplest form of model calibration. The real temperature at
     the glacier is uncertain (few stations, lapse rate varies), so a single
     temperature bias absorbs those errors and makes the model reproduce an
     observed quantity: here, the geodetic mass balance from DEM differencing.
+
+    ``yearly_forcing`` is an optional list of ``(temp_delta, precip_factor)``, one per
+    observed year. The target is then matched by the *average over those years*, which
+    is not the same as the SMB of the average year, because melt only starts above 0 °C.
     """
+    forcing = yearly_forcing or [(0.0, 1.0)]
 
     def misfit(dt):
-        return glacier_wide_smb(surface, mask, climate.with_changes(t_annual_ref=climate.t_annual_ref + dt)) - target_smb
+        shifted = climate.with_changes(t_annual_ref=climate.t_annual_ref + dt)
+        return np.mean([glacier_wide_smb(surface, mask, shifted, td, pf) for td, pf in forcing]) - target_smb
 
     dt = brentq(misfit, *search, xtol=1e-3)
     return climate.with_changes(t_annual_ref=climate.t_annual_ref + dt)
