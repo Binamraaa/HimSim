@@ -47,3 +47,7 @@ run.to_frame().to_csv("my_scenario.csv")
 
 - Yala DEMs and orthophotos 1981/2007/2015: bias-corrected and co-registered (provenance to be documented).
 - Glacier outline: Randolph Glacier Inventory 6.0, RGI60-15.03954 (RGI Consortium 2017), via GLIMS.
+
+## Acknowledgements
+
+Development was assisted by Claude (Anthropic), an AI assistant used through Claude Code.
