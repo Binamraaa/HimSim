@@ -2,7 +2,7 @@
 
 Building a site from the raw DEMs (~1.7 GB) and replaying 1981-today takes seconds to
 minutes; the results are a few MB. ``cached`` stores them in ``data/cache`` keyed by the
-inputs *and* a fingerprint of the himalsim source code and data files, so any code
+inputs *and* a fingerprint of the himsim source code and data files, so any code
 change automatically invalidates old results. A prepared site therefore works without
 the raw DEMs, which is what makes the app quick to start and easy to host.
 """

@@ -1,4 +1,4 @@
-# HimalSim
+# HimSim
 
 An interactive glacier simulator for secondary and high-school students. Explore how Yala Glacier (Langtang,
 Nepal) changed since 1981 using real survey data and real weather, then run your own "what if" climate scenarios
@@ -15,15 +15,15 @@ python -m pytest                         # 33 tests incl. the Halfar benchmark a
 python -m streamlit run app/streamlit_app.py
 ```
 
-The DEMs are not in git (≈1.7 GB). Put them in `DEM_and_ortho/DEM_and_ortho/` or point `HIMALSIM_DATA` at their folder.
+The DEMs are not in git (≈1.7 GB). Put them in `DEM_and_ortho/DEM_and_ortho/` or point `HIMSIM_DATA` at their folder.
 
 ## Use it from Python
 
 ```python
-from himalsim.climate.kyanjin import load_record
-from himalsim.glacier import ClimateChange, prepare_site, simulate
-from himalsim.glacier.history import prepare_history
-from himalsim.glacier.validation import reality_check
+from himsim.climate.kyanjin import load_record
+from himsim.glacier import ClimateChange, prepare_site, simulate
+from himsim.glacier.history import prepare_history
+from himsim.glacier.validation import reality_check
 
 data = prepare_site("Yala", dx=50)                  # cached on disk after the first call
 history = prepare_history(data, load_record())      # calibrate + replay 1981 -> today
@@ -39,11 +39,11 @@ run.to_frame().to_csv("my_scenario.csv")
 
 | Path | Contents |
 |---|---|
-| `himalsim/grid.py` | Model grid, DEM reprojection, gap filling |
-| `himalsim/dem.py` | Catalogue of free global DEMs, Copernicus GLO-30 access, ellipsoid ↔ sea-level conversion |
-| `himalsim/climate/` | Kyanjin climate record (ERA5-Land / ERA5, bias-corrected to the station), Open-Meteo client |
-| `himalsim/glacier/` | scenarios, mass balance, SIA flow, initial thickness, time stepping, sites, history replay, validation |
-| `himalsim/viz.py` | Plotly figures |
+| `himsim/grid.py` | Model grid, DEM reprojection, gap filling |
+| `himsim/dem.py` | Catalogue of free global DEMs, Copernicus GLO-30 access, ellipsoid ↔ sea-level conversion |
+| `himsim/climate/` | Kyanjin climate record (ERA5-Land / ERA5, bias-corrected to the station), Open-Meteo client |
+| `himsim/glacier/` | scenarios, mass balance, SIA flow, initial thickness, time stepping, sites, history replay, validation |
+| `himsim/viz.py` | Plotly figures |
 | `app/` | Streamlit scenario lab + "How it works" explainer |
 | `tests/` | Physics tests (mass conservation, Halfar dome, SMB behaviour, Yala hindcast) |
 | `legacy/` | The original 2025 scripts, archived |

@@ -12,9 +12,9 @@ from dataclasses import dataclass, field
 import numpy as np
 import pandas as pd
 
-from himalsim.glacier.climate import ClimateParams, Scenario
-from himalsim.glacier.flow import FlowParams, flux_divergence, limit_outflow, sia_fluxes, stable_timestep
-from himalsim.glacier.smb import SmbTable, annual_smb, equilibrium_line_altitude
+from himsim.glacier.climate import ClimateParams, Scenario
+from himsim.glacier.flow import FlowParams, flux_divergence, limit_outflow, sia_fluxes, stable_timestep
+from himsim.glacier.smb import SmbTable, annual_smb, equilibrium_line_altitude
 
 ICE_THRESHOLD_M = 1.0  # cells thinner than this don't count as glacier for area/extent
 

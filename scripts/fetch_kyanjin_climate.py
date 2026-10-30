@@ -1,4 +1,4 @@
-"""Rebuild himalsim/climate/data/kyanjin_monthly.csv from the Open-Meteo archive.
+"""Rebuild himsim/climate/data/kyanjin_monthly.csv from the Open-Meteo archive.
 
     python scripts/fetch_kyanjin_climate.py [--end 2025-12-31]
 """
@@ -12,7 +12,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from himalsim.climate.kyanjin import DATA_FILE, KYANJIN, build_monthly  # noqa: E402
+from himsim.climate.kyanjin import DATA_FILE, KYANJIN, build_monthly  # noqa: E402
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--start", default="1960-01-01")

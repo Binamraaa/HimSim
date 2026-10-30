@@ -3,7 +3,7 @@
 Adding a new glacier = adding a ``GlacierSite`` entry to ``SITES``.
 
 Data root defaults to ``<repo>/DEM_and_ortho/DEM_and_ortho`` and can be
-overridden with the ``HIMALSIM_DATA`` environment variable.
+overridden with the ``HIMSIM_DATA`` environment variable.
 """
 
 from __future__ import annotations
@@ -17,14 +17,14 @@ import numpy as np
 from rasterio.features import rasterize
 from scipy.ndimage import label
 
-from himalsim.dem import geoid_undulation, read_copernicus
-from himalsim.grid import Grid, coverage_on_grid, fill_gaps, read_on_grid
-from himalsim.store import cached
-from himalsim.glacier.observations import YALA_MEASUREMENTS, YALA_YEARLY_MASS_BALANCE, Measurement
-from himalsim.glacier.thickness import initial_thickness
+from himsim.dem import geoid_undulation, read_copernicus
+from himsim.grid import Grid, coverage_on_grid, fill_gaps, read_on_grid
+from himsim.store import cached
+from himsim.glacier.observations import YALA_MEASUREMENTS, YALA_YEARLY_MASS_BALANCE, Measurement
+from himsim.glacier.thickness import initial_thickness
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DATA_ROOT = Path(os.environ.get("HIMALSIM_DATA", REPO_ROOT / "DEM_and_ortho" / "DEM_and_ortho"))
+DATA_ROOT = Path(os.environ.get("HIMSIM_DATA", REPO_ROOT / "DEM_and_ortho" / "DEM_and_ortho"))
 OUTLINE_DIR = Path(__file__).resolve().parent / "outlines"  # small GeoJSONs, versioned with the code
 
 

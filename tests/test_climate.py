@@ -2,10 +2,10 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from himalsim.climate.kyanjin import KYANJIN, load_record
-from himalsim.climate.record import ClimateRecord
-from himalsim.glacier.climate import ClimateParams
-from himalsim.glacier.history import historical_scenario
+from himsim.climate.kyanjin import KYANJIN, load_record
+from himsim.climate.record import ClimateRecord
+from himsim.glacier.climate import ClimateParams
+from himsim.glacier.history import historical_scenario
 
 
 def _synthetic_record(years=range(2000, 2010)):

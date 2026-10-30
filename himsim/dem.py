@@ -18,7 +18,7 @@ import numpy as np
 from pyproj import Transformer
 from rasterio.warp import Resampling
 
-from himalsim.grid import Grid, read_on_grid
+from himsim.grid import Grid, read_on_grid
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CACHE_DIR = REPO_ROOT / "data" / "cache"  # git-ignored
@@ -38,7 +38,7 @@ class OpenDem:
 
 OPEN_DEMS: tuple[OpenDem, ...] = (
     OpenDem("Copernicus GLO-30", "30 m (1″)", "2011–2015", "TanDEM-X radar (X-band)", "EGM2008 geoid",
-            "AWS open bucket, no login (used by HimalSim)", "Copernicus DEM licence: free, attribution required",
+            "AWS open bucket, no login (used by HimSim)", "Copernicus DEM licence: free, attribution required",
             "Best open global DEM in steep terrain. Radar penetrates a little into dry snow/firn."),
     OpenDem("FABDEM", "30 m", "2011–2015", "Copernicus GLO-30 with forests & buildings removed", "EGM2008 geoid",
             "University of Bristol download", "CC BY-NC-SA 4.0 (non-commercial)",

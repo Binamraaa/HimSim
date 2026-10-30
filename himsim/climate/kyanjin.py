@@ -25,8 +25,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from himalsim.climate.openmeteo import daily_to_monthly, fetch_daily
-from himalsim.climate.record import ClimateRecord
+from himsim.climate.openmeteo import daily_to_monthly, fetch_daily
+from himsim.climate.record import ClimateRecord
 
 DATA_FILE = Path(__file__).resolve().parent / "data" / "kyanjin_monthly.csv"
 

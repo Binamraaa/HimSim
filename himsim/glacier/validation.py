@@ -11,11 +11,11 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from himalsim.constants import RHO_ICE, RHO_WATER
-from himalsim.glacier.model import ICE_THRESHOLD_M
-from himalsim.glacier.observations import Measurement
-from himalsim.glacier.sites import SiteData
-from himalsim.glacier.smb import annual_smb, equilibrium_line_altitude
+from himsim.constants import RHO_ICE, RHO_WATER
+from himsim.glacier.model import ICE_THRESHOLD_M
+from himsim.glacier.observations import Measurement
+from himsim.glacier.sites import SiteData
+from himsim.glacier.smb import annual_smb, equilibrium_line_altitude
 
 
 def geodetic_rate(data: SiteData, year_a: int, year_b: int) -> float:

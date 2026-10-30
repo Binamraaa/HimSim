@@ -1,6 +1,6 @@
 # Reproducible environment. The project currently runs in the Anaconda *base* env, which already has all of these.
-#   conda env create -f environment.yml && conda activate himalsim
-name: himalsim
+#   conda env create -f environment.yml && conda activate himsim
+name: himsim
 channels: [conda-forge]
 dependencies:
   - python=3.11

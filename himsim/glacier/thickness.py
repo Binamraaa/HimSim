@@ -24,7 +24,7 @@ from __future__ import annotations
 import numpy as np
 from scipy.ndimage import distance_transform_edt, gaussian_filter
 
-from himalsim.constants import G, RHO_ICE
+from himsim.constants import G, RHO_ICE
 
 
 def haeberli_hoelzle_tau(elevation_range_m: float) -> float:

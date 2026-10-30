@@ -16,14 +16,14 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-from himalsim.climate.record import ClimateRecord
-from himalsim.glacier.climate import ClimateParams, Scenario
-from himalsim.glacier.flow import FlowParams
-from himalsim.glacier.model import RunResult, simulate
-from himalsim.glacier.sites import SiteData
-from himalsim.glacier.smb import calibrate_temperature
-from himalsim.glacier.validation import band_comparison, geodetic_rate
-from himalsim.store import cached
+from himsim.climate.record import ClimateRecord
+from himsim.glacier.climate import ClimateParams, Scenario
+from himsim.glacier.flow import FlowParams
+from himsim.glacier.model import RunResult, simulate
+from himsim.glacier.sites import SiteData
+from himsim.glacier.smb import calibrate_temperature
+from himsim.glacier.validation import band_comparison, geodetic_rate
+from himsim.store import cached
 
 RECENT_YEARS = 10  # "today's climate" = average of the last decade of the record
 

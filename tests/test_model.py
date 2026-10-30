@@ -1,10 +1,10 @@
 import numpy as np
 import pytest
 
-from himalsim.glacier.climate import ClimateParams, Scenario
-from himalsim.glacier.model import simulate
-from himalsim.glacier.sites import DATA_ROOT, SITES
-from himalsim.glacier.thickness import initial_thickness, volume_area_scaling
+from himsim.glacier.climate import ClimateParams, Scenario
+from himsim.glacier.model import simulate
+from himsim.glacier.sites import DATA_ROOT, SITES
+from himsim.glacier.thickness import initial_thickness, volume_area_scaling
 
 
 def _valley(n=40, dx=50.0):
@@ -57,7 +57,7 @@ def test_thickness_ignores_terrain_outside_glacier():
 
 def test_ice_domain_blocks_spill_over_ridge():
     """Ice may advance down-valley but not across faces leaving the ice domain."""
-    from himalsim.glacier.sites import ice_domain_mask
+    from himsim.glacier.sites import ice_domain_mask
 
     n, dx = 30, 50.0
     y = np.mgrid[0:n, 0:n][0] * dx
@@ -90,9 +90,9 @@ def test_yala_history_matches_observed_thinning():
     The calibration only fixes the 1981-2015 average, so the faster thinning after 2007
     must come from the observed weather itself.
     """
-    from himalsim.climate.kyanjin import load_record
-    from himalsim.glacier.history import run_history
-    from himalsim.glacier.sites import load_site
+    from himsim.climate.kyanjin import load_record
+    from himsim.glacier.history import run_history
+    from himsim.glacier.sites import load_site
 
     data = load_site(SITES["Yala"], dx=50.0, use_copernicus=False)
     h = run_history(data, load_record())

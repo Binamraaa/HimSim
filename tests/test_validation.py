@@ -1,11 +1,11 @@
 import numpy as np
 import pytest
 
-from himalsim import store
-from himalsim.glacier.climate import ClimateChange, ClimateParams
-from himalsim.glacier.observations import YALA_MEASUREMENTS, Measurement
-from himalsim.glacier.sites import DATA_ROOT, SITES
-from himalsim.glacier.smb import SmbTable, annual_smb
+from himsim import store
+from himsim.glacier.climate import ClimateChange, ClimateParams
+from himsim.glacier.observations import YALA_MEASUREMENTS, Measurement
+from himsim.glacier.sites import DATA_ROOT, SITES
+from himsim.glacier.smb import SmbTable, annual_smb
 
 YALA_DEMS = (DATA_ROOT / SITES["Yala"].dems[1981]).exists()
 
@@ -66,10 +66,10 @@ def test_disk_cache_roundtrip(tmp_path, monkeypatch):
 @pytest.mark.skipif(not YALA_DEMS, reason="Yala DEMs not present")
 def test_yala_reality_check():
     """Regression guard: the model keeps matching the independent field measurements."""
-    from himalsim.climate.kyanjin import load_record
-    from himalsim.glacier.history import prepare_history
-    from himalsim.glacier.sites import prepare_site
-    from himalsim.glacier.validation import reality_check, yearly_mass_balance
+    from himsim.climate.kyanjin import load_record
+    from himsim.glacier.history import prepare_history
+    from himsim.glacier.sites import prepare_site
+    from himsim.glacier.validation import reality_check, yearly_mass_balance
 
     data = prepare_site("Yala", 50.0)
     hist = prepare_history(data, load_record())

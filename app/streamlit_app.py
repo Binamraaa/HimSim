@@ -1,4 +1,4 @@
-"""HimalSim: Yala Glacier explorer for students.
+"""HimSim: Yala Glacier explorer for students.
 
 Run with:   python -m streamlit run app/streamlit_app.py
 
@@ -16,25 +16,25 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # make `himalsim` importable without installing
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # make `himsim` importable without installing
 
-from himalsim import viz  # noqa: E402
-from himalsim.climate.kyanjin import KYANJIN, load_record  # noqa: E402
-from himalsim.dem import OPEN_DEMS, geoid_undulation, read_copernicus  # noqa: E402
-from himalsim.glacier import PRESETS, SITES, ClimateChange, ClimateParams, FlowParams, prepare_site, simulate  # noqa: E402
-from himalsim.glacier.climate import MONTH_NAMES  # noqa: E402
-from himalsim.glacier.history import prepare_history  # noqa: E402
-from himalsim.glacier.smb import annual_smb, equilibrium_line_altitude  # noqa: E402
-from himalsim.glacier.validation import reality_check, yearly_mass_balance  # noqa: E402
+from himsim import viz  # noqa: E402
+from himsim.climate.kyanjin import KYANJIN, load_record  # noqa: E402
+from himsim.dem import OPEN_DEMS, geoid_undulation, read_copernicus  # noqa: E402
+from himsim.glacier import PRESETS, SITES, ClimateChange, ClimateParams, FlowParams, prepare_site, simulate  # noqa: E402
+from himsim.glacier.climate import MONTH_NAMES  # noqa: E402
+from himsim.glacier.history import prepare_history  # noqa: E402
+from himsim.glacier.smb import annual_smb, equilibrium_line_altitude  # noqa: E402
+from himsim.glacier.validation import reality_check, yearly_mass_balance  # noqa: E402
 
-SITE = "Yala"  # one glacier for now; more go in himalsim.glacier.sites.SITES
+SITE = "Yala"  # one glacier for now; more go in himsim.glacier.sites.SITES
 POOL_M3 = 2500.0  # an Olympic swimming pool: 50 m × 25 m × 2 m
 GRADUAL, SUDDEN = "Gradually, reaching it in 2100", "All at once, starting now"
 GRADE_LABEL = {"matches": "✅ matches", "close": "🟡 close", "off": "❌ off"}
 TEACHER_DEFAULTS = {"t_dx": 50.0, "t_lapse": 6.0, "t_pgrad": 5.0, "t_ddf": 8.0,
                     "t_log_a": round(float(np.log10(FlowParams().glen_a)), 2), "t_sliding": False}
 
-st.set_page_config(page_title="HimalSim · Yala Glacier", page_icon="🏔️", layout="wide",
+st.set_page_config(page_title="HimSim · Yala Glacier", page_icon="🏔️", layout="wide",
                    initial_sidebar_state="collapsed")
 ss = st.session_state
 for key, value in {**TEACHER_DEFAULTS, "preset": "+2 °C by 2100", "warming": 2.0, "precip_pct": 0,

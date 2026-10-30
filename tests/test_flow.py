@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from himalsim.glacier.flow import FlowParams, flux_divergence, limit_outflow, sia_fluxes, stable_timestep
+from himsim.glacier.flow import FlowParams, flux_divergence, limit_outflow, sia_fluxes, stable_timestep
 
 
 def _step_flow_only(h, bed, dx, p, t_end):

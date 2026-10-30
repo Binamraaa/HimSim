@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from himalsim.glacier.climate import ClimateParams, Scenario
-from himalsim.glacier.smb import annual_smb, calibrate_temperature, equilibrium_line_altitude, glacier_wide_smb
+from himsim.glacier.climate import ClimateParams, Scenario
+from himsim.glacier.smb import annual_smb, calibrate_temperature, equilibrium_line_altitude, glacier_wide_smb
 
 
 def test_smb_increases_with_elevation():

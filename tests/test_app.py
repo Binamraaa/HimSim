@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from himalsim.glacier.sites import DATA_ROOT, SITES
+from himsim.glacier.sites import DATA_ROOT, SITES
 
 APP = Path(__file__).resolve().parents[1] / "app" / "streamlit_app.py"
 pytestmark = pytest.mark.skipif(not (DATA_ROOT / SITES["Yala"].dems[1981]).exists(), reason="Yala DEMs not present")

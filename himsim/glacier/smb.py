@@ -15,8 +15,8 @@ from __future__ import annotations
 import numpy as np
 from scipy.optimize import brentq
 
-from himalsim.constants import WE_TO_ICE
-from himalsim.glacier.climate import DAYS_IN_MONTH, ClimateParams
+from himsim.constants import WE_TO_ICE
+from himsim.glacier.climate import DAYS_IN_MONTH, ClimateParams
 
 
 def annual_smb(z: np.ndarray, climate: ClimateParams, temp_delta: float = 0.0, precip_factor: float = 1.0) -> np.ndarray:

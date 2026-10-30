@@ -6,7 +6,7 @@ the outcome with the science explained. Learning comes first, and **the data alw
 
 ## Phase 0: Foundation ✅ (Oct 2026)
 - Cleaned workspace, archived legacy scripts, git repo.
-- `himalsim` package: degree-day SMB, conservative SIA flow (Mahaffy + outflow limiter), adaptive time step.
+- `himsim` package: degree-day SMB, conservative SIA flow (Mahaffy + outflow limiter), adaptive time step.
 - Yala site: 1981 surface, RGI 6.0 outline, plasticity-pattern thickness scaled to volume–area scaling.
 - Calibration to the 1981→2015 geodetic thinning; hindcast validation (glacier-mean −20.3 m modelled vs −18.5 m observed, band RMSE 6.6 m).
 - Streamlit scenario lab with 7 presets, scenario comparison, SMB profile, validation and explainer tabs.
@@ -39,7 +39,7 @@ the outcome with the science explained. Learning comes first, and **the data alw
 - [ ] Candidate glaciers with field data: Rikha Samba, Mera, Pokalde, AX010, Changri Nup, Lirung, Langtang.
 - [ ] Nepal-wide overview with OGGM (flowline model; needs WSL/Linux) as a comparison layer, not a replacement.
 
-## Phase 3: Rasuwa 2026 mass-flow module (`himalsim.massflow`), a separate case study, parked
+## Phase 3: Rasuwa 2026 mass-flow module (`himsim.massflow`), a separate case study, parked
 The 26 Aug 2026 Bhote Koshi event began as a rock-ice collapse at ~5,200 m near the Nepal–Tibet border and
 became a debris flood that reached Rasuwagadhi in ~7.5 minutes. That is a **mass-flow** problem, not glacier flow.
 - [ ] Physics: depth-averaged shallow flow over terrain with **Voellmy friction** (Coulomb μ + turbulent ξ), the
@@ -61,4 +61,3 @@ became a debris flood that reached Rasuwagadhi in ~7.5 minutes. That is a **mass
 
 ## Open questions for the project owner
 - Who produced the 1981/2007/2015 Yala DEMs, and may derived (resampled) versions be published?
-- Keep the name "HimalSim"?

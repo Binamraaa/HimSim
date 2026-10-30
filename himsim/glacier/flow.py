@@ -23,7 +23,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from himalsim.constants import G, GLEN_A_TEMPERATE, GLEN_N, RHO_ICE, SECONDS_PER_YEAR
+from himsim.constants import G, GLEN_A_TEMPERATE, GLEN_N, RHO_ICE, SECONDS_PER_YEAR
 
 
 @dataclass(frozen=True)

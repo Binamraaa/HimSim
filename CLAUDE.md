@@ -1,4 +1,4 @@
-# CLAUDE.md: HimalSim
+# CLAUDE.md: HimSim
 
 An interactive glacier simulation for **secondary and high-school students** (researchers may enjoy it too).
 Two non-negotiables:
@@ -26,31 +26,31 @@ python scripts/fetch_kyanjin_climate.py            # rebuild the Kyanjin climate
 ```
 Headless app check: `tests/test_app.py` (`streamlit.testing.v1.AppTest`). Don't use `st.pills`/`st.segmented_control`:
 AppTest in Streamlit 1.42 can't drive them (it breaks every later interaction); use `st.radio(horizontal=...)`.
-Prepared sites and history runs are cached on disk in `data/cache/` (`himalsim.store.cached`), keyed on the inputs
+Prepared sites and history runs are cached on disk in `data/cache/` (`himsim.store.cached`), keyed on the inputs
 plus a fingerprint of the package source, so any code change rebuilds them (first load ~10 s, then <1 s).
 After replacing DEM files, delete `data/cache/`. 25 m runs are ~6× slower than 50 m.
 Network in this environment occasionally drops for a minute; retry before assuming a host is blocked.
 
 ## Layout
 ```
-himalsim/constants.py           physical constants (SI; time in YEARS)
-himalsim/grid.py                Grid (north-up, UTM 45N), read_on_grid / coverage_on_grid / fill_gaps
-himalsim/dem.py                 OPEN_DEMS catalogue, Copernicus GLO-30 reader (+cache), EGM2008 geoid conversion
-himalsim/store.py               disk cache for prepared sites / history runs (invalidated by code changes)
-himalsim/climate/record.py      ClimateRecord: monthly T/P series, climatology, anomalies, trend, precip rescaling
-himalsim/climate/openmeteo.py   Open-Meteo archive API client (ERA5 / ERA5-Land)
-himalsim/climate/kyanjin.py     KYANJIN station facts, load_record(), load_icimod_csv() for the real AWS data
-himalsim/climate/data/          kyanjin_monthly.csv (versioned; header documents provenance)
-himalsim/glacier/climate.py     ClimateParams (.from_record), Scenario (+ observed-year replay), ClimateChange + PRESETS
-himalsim/glacier/smb.py         annual_smb, SmbTable (fast SMB(z) lookup), equilibrium_line_altitude, calibrate_temperature
-himalsim/glacier/flow.py        FlowParams, sia_fluxes (staggered, active faces, domain), limit_outflow, stable_timestep
-himalsim/glacier/thickness.py   perfect plasticity (glacier-only smoothing), volume-area scaling, initial_thickness
-himalsim/glacier/model.py       simulate() -> RunResult
-himalsim/glacier/sites.py       GlacierSite registry, load_site()/prepare_site() -> SiteData, ice_domain_mask; outlines/
-himalsim/glacier/observations.py  Measurement (cited field data + grading rule), YALA_MEASUREMENTS, yearly stake balances
-himalsim/glacier/history.py     calibrate(), historical_scenario(), run_history()/prepare_history() -> HistoryRun
-himalsim/glacier/validation.py  geodetic_rate, band_comparison, reality_check (model vs every Measurement), yearly_mass_balance
-himalsim/viz.py                 all Plotly figures + colour roles
+himsim/constants.py           physical constants (SI; time in YEARS)
+himsim/grid.py                Grid (north-up, UTM 45N), read_on_grid / coverage_on_grid / fill_gaps
+himsim/dem.py                 OPEN_DEMS catalogue, Copernicus GLO-30 reader (+cache), EGM2008 geoid conversion
+himsim/store.py               disk cache for prepared sites / history runs (invalidated by code changes)
+himsim/climate/record.py      ClimateRecord: monthly T/P series, climatology, anomalies, trend, precip rescaling
+himsim/climate/openmeteo.py   Open-Meteo archive API client (ERA5 / ERA5-Land)
+himsim/climate/kyanjin.py     KYANJIN station facts, load_record(), load_icimod_csv() for the real AWS data
+himsim/climate/data/          kyanjin_monthly.csv (versioned; header documents provenance)
+himsim/glacier/climate.py     ClimateParams (.from_record), Scenario (+ observed-year replay), ClimateChange + PRESETS
+himsim/glacier/smb.py         annual_smb, SmbTable (fast SMB(z) lookup), equilibrium_line_altitude, calibrate_temperature
+himsim/glacier/flow.py        FlowParams, sia_fluxes (staggered, active faces, domain), limit_outflow, stable_timestep
+himsim/glacier/thickness.py   perfect plasticity (glacier-only smoothing), volume-area scaling, initial_thickness
+himsim/glacier/model.py       simulate() -> RunResult
+himsim/glacier/sites.py       GlacierSite registry, load_site()/prepare_site() -> SiteData, ice_domain_mask; outlines/
+himsim/glacier/observations.py  Measurement (cited field data + grading rule), YALA_MEASUREMENTS, yearly stake balances
+himsim/glacier/history.py     calibrate(), historical_scenario(), run_history()/prepare_history() -> HistoryRun
+himsim/glacier/validation.py  geodetic_rate, band_comparison, reality_check (model vs every Measurement), yearly_mass_balance
+himsim/viz.py                 all Plotly figures + colour roles
 app/streamlit_app.py            UI only; no physics. Guided tabs: 1 Meet Yala · 2 Change the climate · 3 Can we trust it? ·
                                 Learn more. Teacher settings in the collapsed sidebar.
 app/how_it_works.md             student explainer; update whenever physics changes, and re-verify its numbers
@@ -83,7 +83,7 @@ legacy/                         archived 2025 scripts: never edit or import
 - SMB inside `simulate` comes from `SmbTable` (exact SMB on a 2 m elevation axis, interpolated): same physics, ~50× faster.
 
 ## Data facts
-- Yala DEMs: `DEM_and_ortho/DEM_and_ortho/` (override `HIMALSIM_DATA`), **git-ignored**. 1981 = 10 m, 2007 = 2 m
+- Yala DEMs: `DEM_and_ortho/DEM_and_ortho/` (override `HIMSIM_DATA`), **git-ignored**. 1981 = 10 m, 2007 = 2 m
   (wide valley coverage), 2015 = 1 m; nodata −3.4e38; EPSG:32645. `2015Yala_ortho.tif` is 1.6 GB, never read whole.
 - **Vertical datum (inferred):** Yala DEMs are WGS84-ellipsoidal. On rock they sit 30.0–31.5 m below Copernicus,
   matching the EGM2008 undulation −31.4 m. `load_site` converts them. Producer confirmation still pending.
@@ -139,5 +139,5 @@ Code: AGPL-3.0-or-later (`LICENSE`). Data keep their own licences (see README "D
 dependencies and data whose terms are compatible, and credit every new data source in the README.
 
 ## Working style
-- Keep `app/` free of physics and `himalsim` free of Streamlit.
-- Don't commit unless asked; Phase 1 work lives on branch `phase1-climate-dem`.
+- Keep `app/` free of physics and `himsim` free of Streamlit.
+- Don't commit or push unless asked. `main` is the published branch (github.com/Binamraaa/HimSim).
