@@ -134,6 +134,10 @@ Yala tests are skipped when DEMs are absent.
   `INK` for the modelled past and the "today's climate" baseline; 3D views use `glacier_animation` (Play + slider);
   `ICE_RAMP` thickness; `DH_DIVERGING` (red = thinning); neutral greys for terrain; never dual y-axes.
 
+## Licence
+Code: AGPL-3.0-or-later (`LICENSE`). Data keep their own licences (see README "Data credits"). Only add
+dependencies and data whose terms are compatible, and credit every new data source in the README.
+
 ## Working style
 - Keep `app/` free of physics and `himalsim` free of Streamlit.
 - Don't commit unless asked; Phase 1 work lives on branch `phase1-climate-dem`.

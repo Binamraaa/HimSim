@@ -48,6 +48,12 @@ run.to_frame().to_csv("my_scenario.csv")
 | `tests/` | Physics tests (mass conservation, Halfar dome, SMB behaviour, Yala hindcast) |
 | `legacy/` | The original 2025 scripts, archived |
 
+## Licence
+
+The code is free software under the [GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0-or-later).
+You may use, study, share and change it. If you share a modified version, or run one as a website, you must
+share its source under the same licence. The data listed below keep their own licences.
+
 ## Data credits
 
 - Yala DEMs and orthophotos 1981/2007/2015: bias-corrected and co-registered (provenance to be documented).

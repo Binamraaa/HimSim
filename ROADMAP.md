@@ -56,9 +56,9 @@ became a debris flood that reached Rasuwagadhi in ~7.5 minutes. That is a **mass
 - [ ] Multi-page app: Glaciers · Mass flows · Learn · About/cite.
 - [ ] Save, share and re-load scenarios as small JSON files; a gallery of instructive scenarios.
 - [ ] Free hosting (Streamlit Community Cloud or Hugging Face Spaces) with DEMs pre-resampled to model resolution (MB, not GB).
-- [ ] Open-source license, citation file, contributor guide, docs site.
+- [x] Licence: AGPL-3.0-or-later (Oct 2026).
+- [ ] Citation file, contributor guide, docs site.
 
 ## Open questions for the project owner
 - Who produced the 1981/2007/2015 Yala DEMs, and may derived (resampled) versions be published?
-- License preference for the code (MIT / BSD-3 / GPL)?
 - Keep the name "HimalSim"?
