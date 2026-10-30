@@ -1,0 +1,21 @@
+# Raster data is large (2015 ortho alone is 1.6 GB) — keep it out of git
+DEM_and_ortho/
+data/
+*.tif
+*.tiff
+
+# Model outputs
+results/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+.venv/
+venv/
+
+# Editors / OS
+.ipynb_checkpoints/
+Thumbs.db
+.DS_Store

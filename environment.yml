@@ -1,0 +1,14 @@
+# Reproducible environment. The project currently runs in the Anaconda *base* env, which already has all of these.
+#   conda env create -f environment.yml && conda activate himalsim
+name: himalsim
+channels: [conda-forge]
+dependencies:
+  - python=3.11
+  - numpy
+  - scipy
+  - pandas
+  - rasterio
+  - pyproj
+  - plotly
+  - streamlit
+  - pytest

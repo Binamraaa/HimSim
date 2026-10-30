@@ -1,0 +1,19 @@
+[project]
+name = "himalsim"
+version = "0.1.0"
+description = "Learning-oriented simulation toolkit for Himalayan glaciers and mass flows"
+requires-python = ">=3.9"
+dependencies = ["numpy", "scipy", "pandas", "rasterio", "pyproj", "plotly", "streamlit"]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[tool.setuptools.packages.find]
+include = ["himalsim*"]
+
+[tool.setuptools.package-data]
+"himalsim.glacier" = ["outlines/*.geojson"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
