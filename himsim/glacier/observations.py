@@ -84,8 +84,8 @@ YALA_MEASUREMENTS: tuple[Measurement, ...] = (
     Measurement(
         "How fast melting increases going down the glacier (near the snowline)", "smb_gradient", 1.04,
         "m w.e. per 100 m", STUMM_2021, params=(("first", 2012), ("last", 2017)), uncertainty=0.12,
-        why_off="The model uses monthly air temperature only. Real melt on the tongue is also driven by strong "
-                "Himalayan sunshine and warm days within each month, so it rises faster toward the snout.",
+        why_off="The model's melt depends on air temperature only. Strong Himalayan sunshine on the dark tongue "
+                "adds melt that the air temperature doesn't show, so real melt rises faster toward the snout.",
     ),
     Measurement(
         "Glacier area in 2006 (satellite image)", "area", 1.82, "km²", SUGIYAMA_2013,

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 import numpy as np
 import pandas as pd
@@ -14,12 +14,15 @@ class ClimateRecord:
 
     ``data`` has a monthly DatetimeIndex (month start) and columns ``t_c`` and ``p_mm``.
     ``sources`` lists where every number came from. Keep it accurate: students will read it.
+    ``monthly_lapse`` optionally says how fast the air cools with height above the station in each
+    calendar month (12 values, °C per metre, Jan first), e.g. measured between two stations.
     """
 
     name: str
     elevation: float
     data: pd.DataFrame
     sources: list[str] = field(default_factory=list)
+    monthly_lapse: tuple[float, ...] = ()
 
     @property
     def first_year(self) -> int:
@@ -57,6 +60,19 @@ class ClimateRecord:
         ann = self.annual().loc[start:end]
         return float(np.polyfit(ann.index.values, ann["t_c"].values, 1)[0] * 10.0)
 
+    def with_temperature_offsets(self, offsets, note: str) -> ClimateRecord:
+        """Add a fixed amount to every January, another to every February, and so on (12 values, Jan first).
+
+        This is the "delta" form of bias correction: the year-to-year ups and downs (and the trend) stay
+        as they were, but the average seasonal cycle moves to match a station.
+        """
+        offsets = np.asarray(offsets, dtype=np.float64)
+        if offsets.shape != (12,):
+            raise ValueError("need one temperature offset per calendar month")
+        data = self.data.copy()
+        data["t_c"] = data["t_c"] + offsets[data.index.month - 1]
+        return replace(self, data=data, sources=self.sources + [note])
+
     def with_precip_scaled(self, annual_mm: float, start: int, end: int, note: str) -> ClimateRecord:
         """Rescale precipitation so its ``start``-``end`` annual mean equals ``annual_mm``.
 
@@ -66,4 +82,11 @@ class ClimateRecord:
         current = self.annual().loc[start:end, "p_mm"].mean()
         data = self.data.copy()
         data["p_mm"] = data["p_mm"] * annual_mm / current
-        return ClimateRecord(self.name, self.elevation, data, self.sources + [note])
+        return replace(self, data=data, sources=self.sources + [note])
+
+    def with_monthly_lapse(self, lapse_per_m, note: str) -> ClimateRecord:
+        """Attach 12 measured lapse rates (°C per metre, Jan first) for extrapolating up the valley."""
+        lapse = tuple(float(v) for v in lapse_per_m)
+        if len(lapse) != 12:
+            raise ValueError("need one lapse rate per calendar month")
+        return replace(self, monthly_lapse=lapse, sources=self.sources + [note])

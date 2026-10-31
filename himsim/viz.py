@@ -247,6 +247,49 @@ def yearly_mass_balance_chart(df: pd.DataFrame) -> go.Figure:
     return fig
 
 
+def station_check_chart(df: pd.DataFrame, month_names: Sequence[str]) -> go.Figure:
+    """Average year at a weather station: measured vs model vs uncorrected reanalysis temperature.
+
+    ``df`` comes from ``validation.station_comparison``; each calendar month is averaged over
+    the months the station measured.
+    """
+    t = df.dropna(subset=["station_t_c"])
+    clim = t.groupby(t.index.month)[["station_t_c", "model_t_c", "reanalysis_t_c"]].mean()
+    names = [month_names[m - 1] for m in clim.index]
+    fig = go.Figure()
+    fig.add_hline(y=0, line=dict(color="rgba(128,128,128,0.7)", width=1, dash="dot"))
+    for col, label, color, dash in (("station_t_c", "Measured (weather station)", CATEGORICAL[0], None),
+                                    ("model_t_c", "Model", CATEGORICAL[1], None),
+                                    ("reanalysis_t_c", "Reanalysis, uncorrected", "rgba(128,128,128,0.9)", "dot")):
+        fig.add_trace(go.Scatter(x=names, y=clim[col], mode="lines+markers", name=label,
+                                 line=dict(color=color, width=2, dash=dash), marker=dict(size=8),
+                                 hovertemplate=f"{label}<br>%{{x}}: %{{y:.1f}} °C<extra></extra>"))
+    fig.update_layout(height=380, hovermode="x unified", yaxis_title="Air temperature at Kyanjin (°C)",
+                      legend=dict(orientation="h", y=1.12), **_LAYOUT)
+    fig.update_xaxes(showgrid=False)
+    fig.update_yaxes(gridcolor=GRID)
+    return fig
+
+
+def station_bias_chart(rows: pd.DataFrame) -> go.Figure:
+    """Model minus measured temperature at each station (whole year and monsoon), stations ordered by height.
+
+    ``rows`` has columns ``station`` (label), ``year`` and ``monsoon`` (°C).
+    """
+    fig = go.Figure()
+    fig.add_hline(y=0, line=dict(color="rgba(128,128,128,0.7)", width=1, dash="dot"))
+    for col, label, color, symbol in (("year", "Whole year", CATEGORICAL[0], "circle"),
+                                      ("monsoon", "Monsoon (Jun–Sep), when Yala melts", CATEGORICAL[1], "square")):
+        fig.add_trace(go.Scatter(x=rows["station"], y=rows[col], mode="markers", name=label,
+                                 marker=dict(size=14, color=color, symbol=symbol, line=dict(color="#ffffff", width=1)),
+                                 hovertemplate=f"{label}<br>%{{x}}: model %{{y:+.1f}} °C vs measured<extra></extra>"))
+    fig.update_layout(height=360, hovermode="x unified", yaxis_title="Model minus measured (°C)",
+                      legend=dict(orientation="h", y=1.15), **_LAYOUT)
+    fig.update_xaxes(showgrid=False)
+    fig.update_yaxes(gridcolor=GRID, zeroline=False)
+    return fig
+
+
 def assign_colors(names: Sequence[str], existing: dict[str, str] | None = None) -> dict[str, str]:
     """Give each new name the next free categorical slot; names already coloured keep theirs."""
     colors = dict(existing or {})

@@ -3,6 +3,8 @@ DEM_and_ortho/
 /data/
 *.tif
 *.tiff
+# ICIMOD station downloads: their terms don't allow redistribution without consent
+Meteorological data from Kyanging automatic weather station/
 
 # Model outputs
 results/
@@ -19,3 +21,5 @@ venv/
 .ipynb_checkpoints/
 Thumbs.db
 .DS_Store
+Meteorological data from Yala Base Camp automatic weather station/
+AWS Yala Glacier/

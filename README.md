@@ -62,6 +62,15 @@ share its source under the same licence. The data listed below keep their own li
   Stumm et al. (2021), doi:10.5194/essd-13-3791-2021 (ICIMOD stake mass balance 2011–2017).
 - Climate: ERA5 (Hersbach et al. 2020) and ERA5-Land (Muñoz-Sabater et al. 2021), Copernicus Climate Change Service,
   via Open-Meteo (CC BY 4.0); precipitation scaled to the Kyanjin gauge (Immerzeel et al. 2014; Steiner et al. 2021).
+- Weather stations (ICIMOD, Langtang): *Meteorological data from Kyanging automatic weather station* (2016),
+  doi:10.26066/RDS.22464; *Meteorological data from Yala Base Camp automatic weather station* (2016),
+  doi:10.26066/RDS.26859; *AWS Yala Glacier* (2021), doi:10.26066/RDS.1972507. Kyanjing sets the seasonal temperature
+  correction and Kyanjing + Base Camp the monthly lapse rates (12 values each, in the code); all three check the model. The raw data are not included in this
+  repository.
+- Melt factors: Shea et al. (2015), The Cryosphere 9, 1105–1128, doi:10.5194/tc-9-1105-2015 (snow 5.3, ice
+  8.63 mm w.e. °C⁻¹ d⁻¹).
+- Sunshine melt rule (optional): Litt et al. (2019), Scientific Reports 9, 5264, doi:10.1038/s41598-019-41657-5
+  (Yala factors, Table S4); sunshine and albedo from the ICIMOD Yala Glacier AWS.
 - Copernicus DEM GLO-30: © DLR e.V. 2010–2014 and © Airbus Defence and Space GmbH 2014–2018, provided under
   COPERNICUS by the European Union and ESA.
 

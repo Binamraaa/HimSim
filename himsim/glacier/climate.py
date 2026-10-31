@@ -35,21 +35,48 @@ class ClimateParams:
     ref_elevation: float = 3862.0  # m a.s.l. (Kyanjin Gompa station)
     t_annual_ref: float = 2.5  # °C, annual mean air temperature at ref_elevation (ERA5-Land 1981-2010)
     t_seasonal_amp: float = 7.6  # °C, half the July-January difference (idealised cycle only)
-    lapse_rate: float = 0.0060  # °C per metre; temperature drops this much per metre of climb
+    lapse_rate: float = 0.0060  # °C per metre; temperature drops this much per metre of climb (yearly mean)
     p_annual_ref: float = 0.867  # m w.e. per year at ref_elevation (Kyanjin gauge, Immerzeel et al. 2014)
     p_gradient: float = 0.05  # fractional precipitation increase per 100 m of climb
     monsoon_fraction: float = 0.75  # share of annual precipitation falling Jun-Sep (idealised cycle only)
     t_snow: float = 0.0  # °C, at or below this all precipitation is snow
     t_rain: float = 2.0  # °C, at or above this all precipitation is rain
     t_melt: float = 0.0  # °C, melt happens when monthly mean temperature exceeds this
-    ddf: float = 0.008  # degree-day factor, m water equivalent per °C per day
+    # Degree-day factors (m water equivalent per °C per day): bare ice melts faster than snow because it is darker.
+    # Initial (literature) values for clean ice and snow used for the Nepal Himalaya by Shea et al. (2015),
+    # The Cryosphere 9, 1105-1128, doi:10.5194/tc-9-1105-2015, Table 2 (calibrated there for Everest: 9.7 and 5.4).
+    ddf: float = 0.00863  # bare ice
+    ddf_snow: float = 0.0053  # snow (used until this year's snow has melted)
+    # Melt rule: "ti" = degree days only (ddf / ddf_snow); "eti" = enhanced temperature index, which adds sunshine:
+    #   daily melt = tf_eti x (T - t_melt) + srf x SW_in x (1 - albedo), on days warmer than t_melt.
+    # tf_eti and srf: Litt et al. (2019), Sci. Rep. 9, 5264, doi:10.1038/s41598-019-41657-5, Table S4, Yala Glacier
+    # 5330 m, monsoon 2014 and 2016 (both years gave 2.0 mm w.e. °C-1 d-1 and 0.1 mm w.e. W-1 m2 d-1, printed to one
+    # decimal). Litt et al. calibrated them with air temperature measured over the ice. On Yala (50 m, standard
+    # settings) "eti" flattens the SMB gradient to 0.56 (vs 0.70 "ti"; stakes 1.04), so "ti" stays the default; with
+    # their whole-year SRF of 0.2 it reaches 0.83. See CLAUDE.md, "Reference numbers".
+    melt_model: str = "ti"
+    tf_eti: float = 0.0020  # m w.e. per °C per day
+    srf: float = 0.0001  # m w.e. per (W m-2) per day
+    # Measured at the ICIMOD Yala Glacier AWS (5291/5330 m), 2016-2019 (``icimod_aws.radiation_inputs``):
+    # monthly mean incoming shortwave radiation (Jan first), and median daily albedo of bare ice (< 0.4) and snow.
+    sw_in: tuple[float, ...] = (219.1, 249.9, 307.3, 301.2, 284.1, 236.2, 151.9, 155.2, 128.0, 194.9, 237.8, 207.2)
+    albedo_ice: float = 0.23
+    albedo_snow: float = 0.70
+    # Day-to-day spread (standard deviation, °C) of daily mean air temperature around its monthly mean, at the
+    # ICIMOD Yala Base Camp AWS (5090 m, off the ice), 2012-2019. Used to estimate how many days of a month melt.
+    daily_t_sd: tuple[float, ...] = (3.28, 2.62, 2.97, 2.16, 1.94, 1.19, 0.68, 0.75, 1.17, 2.28, 2.0, 3.26)
     seasonal_t: tuple[float, ...] = ()  # 12 monthly deviations from the annual mean (°C)
     precip_share: tuple[float, ...] = ()  # 12 monthly shares of annual precipitation (sum to 1)
+    monthly_lapse: tuple[float, ...] = ()  # 12 measured lapse rates (°C per metre); overrides lapse_rate if given
     source: str = "Idealised Langtang climate"
 
     @classmethod
     def from_record(cls, record, start: int, end: int, **overrides) -> ClimateParams:
-        """Climate whose annual means and seasonal cycle are the ``start``-``end`` average of a ClimateRecord."""
+        """Climate whose annual means and seasonal cycle are the ``start``-``end`` average of a ClimateRecord.
+
+        If the record carries measured monthly lapse rates they are used, and ``lapse_rate`` becomes their mean.
+        Overriding ``lapse_rate`` then scales all 12 by the same factor, so the seasonal pattern is kept.
+        """
         clim = record.climatology(start, end)
         t, p = clim["t_c"].to_numpy(), clim["p_mm"].to_numpy()
         params = dict(
@@ -60,7 +87,13 @@ class ClimateParams:
             precip_share=tuple(float(v) for v in p / p.sum()),
             source=f"{record.name}, {start}-{end} average",
         )
-        params.update(overrides)
+        lapse = tuple(getattr(record, "monthly_lapse", ()))
+        if lapse:
+            mean = float(np.mean(lapse))
+            if "lapse_rate" in overrides and "monthly_lapse" not in overrides:
+                lapse = tuple(v * overrides["lapse_rate"] / mean for v in lapse)
+            params.update(monthly_lapse=lapse, lapse_rate=float(np.mean(lapse)))
+        params.update({k: v for k, v in overrides.items() if not (lapse and k == "lapse_rate")})
         return cls(**params)
 
     def with_changes(self, **kwargs) -> ClimateParams:
@@ -83,6 +116,9 @@ class ClimateParams:
         else:
             months = np.arange(12).reshape(shape)
             seasonal = self.t_seasonal_amp * np.cos(2.0 * np.pi * (months - 6) / 12.0)  # peak in July
+        if self.monthly_lapse:
+            lapse = np.asarray(self.monthly_lapse, dtype=np.float64).reshape(shape)
+            return self.t_annual_ref + temp_delta + seasonal - lapse * (z - self.ref_elevation)[np.newaxis]
         annual = self.t_annual_ref + temp_delta - self.lapse_rate * (z - self.ref_elevation)
         return annual[np.newaxis] + seasonal
 

@@ -11,6 +11,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+from himsim.climate.record import ClimateRecord
 from himsim.constants import RHO_ICE, RHO_WATER
 from himsim.glacier.model import ICE_THRESHOLD_M
 from himsim.glacier.observations import Measurement
@@ -126,6 +127,34 @@ def reality_check(data: SiteData, hist) -> pd.DataFrame:
         "measured_value": m.value,
         "model_value": model,
     } for m, model in rows])
+
+
+def station_comparison(hist, record: ClimateRecord, station: ClimateRecord,
+                       reanalysis: ClimateRecord | None = None) -> pd.DataFrame:
+    """The model's weather at a weather station against what the station measured, month by month.
+
+    The model's month is the calibrated climatology plus that year's anomaly, exactly what the
+    history run feeds the glacier, evaluated at the station's height that month. ``reanalysis_t_c`` is the
+    temperature of ``reanalysis`` (default: ``record``) before calibration, e.g. the uncorrected
+    ERA5-Land. Only months the station measured are returned.
+    """
+    anom = record.annual_anomalies(*hist.calibration_period)
+    rows = []
+    for month, obs in station.data.iterrows():
+        if month.year not in anom.index or obs[["t_c", "p_mm"]].isna().all():
+            continue
+        dt, pf = anom.loc[month.year, "dt_c"], anom.loc[month.year, "p_ratio"]
+        z = np.array(obs.get("z_m", station.elevation))  # stations can move (Yala Glacier did in 2018)
+        i = month.month - 1
+        rows.append({
+            "month": month,
+            "station_t_c": obs["t_c"],
+            "model_t_c": float(hist.climate.monthly_temperature(z, dt)[i]),
+            "reanalysis_t_c": float((reanalysis or record).data["t_c"].get(month, np.nan)),
+            "station_p_mm": obs["p_mm"],
+            "model_p_mm": float(hist.climate.monthly_precipitation(z, pf)[i] * 1000.0),
+        })
+    return pd.DataFrame(rows).set_index("month")
 
 
 def yearly_mass_balance(hist, observed: dict[int, tuple[float, float]]) -> pd.DataFrame:

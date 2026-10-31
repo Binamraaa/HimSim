@@ -77,5 +77,47 @@ def test_yala_reality_check():
     assert rc.loc["How much ice was in the glacier in 2009?", "grade"] == "matches"
     assert rc.loc["… and in 2009, measured with radar?", "grade"] == "matches"
     assert rc.loc["Average yearly mass balance 2011–2017", "grade"] == "matches"
-    assert (rc["grade"] == "matches").sum() >= 6
+    assert rc.loc["How fast did the surface drop, 2007–2015?", "grade"] == "matches"  # since the measured lapse rates
+    assert (rc["grade"] == "matches").sum() >= 7
+    assert (rc["grade"] == "off").sum() <= 1  # known: SMB gradient 0.70 vs 1.04
     assert len(yearly_mass_balance(hist, dict(data.site.yearly_mass_balance))) == 6
+
+
+@pytest.mark.skipif(not YALA_DEMS, reason="Yala DEMs not present")
+def test_yala_climate_matches_kyanjing_station():
+    """With the station's seasons and measured lapse rates, the tuned model matches Kyanjing with almost no tuning."""
+    from himsim.climate.kyanjin import aws_available, load_kyanjing_aws, load_record
+    from himsim.glacier.history import prepare_history
+    from himsim.glacier.sites import prepare_site
+    from himsim.glacier.validation import station_comparison
+
+    if not aws_available():
+        pytest.skip("Kyanjing AWS download not present")
+    record = load_record()
+    hist = prepare_history(prepare_site("Yala", 50.0), record)
+    sc = station_comparison(hist, record, load_kyanjing_aws())
+    t = sc.dropna(subset=["station_t_c"])
+    warmer = t["model_t_c"] - t["station_t_c"]
+    summer, winter = warmer[t.index.month.isin([6, 7, 8, 9])].mean(), warmer[t.index.month.isin([12, 1, 2])].mean()
+    assert abs(summer - winter) < 0.6  # seasons fixed (were +1.4 / -1.4 °C before the correction)
+    assert abs(warmer.mean()) < 0.3  # was +1.34 °C with a constant 6 °C/km
+    raw = ClimateParams.from_record(record, *hist.calibration_period).t_annual_ref
+    assert abs(hist.climate.t_annual_ref - raw) < 0.4  # the calibration shift itself: +0.24 °C
+
+
+@pytest.mark.skipif(not YALA_DEMS, reason="Yala DEMs not present")
+def test_yala_model_monsoon_matches_base_camp():
+    """In the melt season the tuned model's air at Yala Base Camp (5090 m) is close to the thermometer."""
+    from himsim.climate.icimod_aws import YALA_BASE_CAMP, load_aws
+    from himsim.climate.kyanjin import load_record
+    from himsim.glacier.history import prepare_history
+    from himsim.glacier.sites import prepare_site
+    from himsim.glacier.validation import station_comparison
+
+    if not YALA_BASE_CAMP.available():
+        pytest.skip("Yala Base Camp AWS download not present")
+    record = load_record()
+    hist = prepare_history(prepare_site("Yala", 50.0), record)
+    sc = station_comparison(hist, record, load_aws(YALA_BASE_CAMP)).dropna(subset=["station_t_c"])
+    monsoon = sc[sc.index.month.isin([6, 7, 8, 9])]
+    assert abs((monsoon["model_t_c"] - monsoon["station_t_c"]).mean()) < 0.5  # +0.30 °C (+0.37 with 6 °C/km)

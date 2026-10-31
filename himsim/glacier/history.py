@@ -116,5 +116,5 @@ def prepare_history(data: SiteData, record: ClimateRecord, flow: FlowParams = Fl
                     base: ClimateParams | None = None) -> HistoryRun:
     """``run_history`` with a disk cache, so the app starts instantly after the first run."""
     record_id = hashlib.sha1(pd.util.hash_pandas_object(record.data).to_numpy().tobytes()).hexdigest()
-    key = (data.site.name, data.grid.dx, record.name, record_id, flow, base)
+    key = (data.site.name, data.grid.dx, record.name, record_id, tuple(record.monthly_lapse), flow, base)
     return cached("history", key, lambda: run_history(data, record, flow, base=base))

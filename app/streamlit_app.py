@@ -9,6 +9,7 @@ model settings live in the sidebar, collapsed by default. No physics in this fil
 
 from __future__ import annotations
 
+import calendar
 import sys
 from pathlib import Path
 
@@ -19,20 +20,24 @@ import streamlit as st
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # make `himsim` importable without installing
 
 from himsim import viz  # noqa: E402
-from himsim.climate.kyanjin import KYANJIN, load_record  # noqa: E402
+from himsim.climate.icimod_aws import KYANJING, STATIONS, YALA_BASE_CAMP, YALA_GLACIER, lapse_rates, load_aws  # noqa: E402
+from himsim.climate.kyanjin import AWS_MINUS_ERA5LAND, KYANJIN, KYANJIN_TO_BASE_CAMP_LAPSE, load_record  # noqa: E402
 from himsim.dem import OPEN_DEMS, geoid_undulation, read_copernicus  # noqa: E402
 from himsim.glacier import PRESETS, SITES, ClimateChange, ClimateParams, FlowParams, prepare_site, simulate  # noqa: E402
 from himsim.glacier.climate import MONTH_NAMES  # noqa: E402
 from himsim.glacier.history import prepare_history  # noqa: E402
 from himsim.glacier.smb import annual_smb, equilibrium_line_altitude  # noqa: E402
-from himsim.glacier.validation import reality_check, yearly_mass_balance  # noqa: E402
+from himsim.glacier.validation import reality_check, station_comparison, yearly_mass_balance  # noqa: E402
 
 SITE = "Yala"  # one glacier for now; more go in himsim.glacier.sites.SITES
 POOL_M3 = 2500.0  # an Olympic swimming pool: 50 m × 25 m × 2 m
 GRADUAL, SUDDEN = "Gradually, reaching it in 2100", "All at once, starting now"
 GRADE_LABEL = {"matches": "✅ matches", "close": "🟡 close", "off": "❌ off"}
-TEACHER_DEFAULTS = {"t_dx": 50.0, "t_lapse": 6.0, "t_pgrad": 5.0, "t_ddf": 8.0,
-                    "t_log_a": round(float(np.log10(FlowParams().glen_a)), 2), "t_sliding": False}
+MEASURED_LAPSE = round(float(np.mean(KYANJIN_TO_BASE_CAMP_LAPSE)), 1)  # °C/km, yearly mean of the 12 measured months
+TEACHER_DEFAULTS = {"t_dx": 50.0, "t_lapse": MEASURED_LAPSE, "t_pgrad": 5.0,
+                    "t_ddf": round(ClimateParams().ddf * 1000, 2), "t_ddf_snow": round(ClimateParams().ddf_snow * 1000, 2),
+                    "t_log_a": round(float(np.log10(FlowParams().glen_a)), 2), "t_sliding": False,
+                    "t_sunshine": ClimateParams().melt_model == "eti"}
 
 st.set_page_config(page_title="HimSim · Yala Glacier", page_icon="🏔️", layout="wide",
                    initial_sidebar_state="collapsed")
@@ -51,6 +56,17 @@ def get_site(dx: float):
 @st.cache_resource(show_spinner=False)
 def get_record():
     return load_record()
+
+
+@st.cache_resource(show_spinner=False)
+def get_stations():
+    """The ICIMOD weather stations whose (not redistributed) downloads are on this computer, by name."""
+    return {s.name: load_aws(s) for s in STATIONS if s.available()}
+
+
+@st.cache_resource(show_spinner=False)
+def get_uncorrected_record():
+    return load_record(correct_seasons_to_station=False)
 
 
 @st.cache_resource(show_spinner="Replaying the real weather from 1981 to today (first time only, about 10 s)…")
@@ -118,11 +134,22 @@ with st.sidebar:
                "replays 1981 → today (about 10 s). Students can ignore this panel.")
     st.radio("Grid cell size", [50.0, 25.0], key="t_dx",
              format_func=lambda v: f"{v:.0f} m" + (" (fast)" if v == 50 else " (sharper, ~6× slower)"))
-    st.slider("Temperature drop with height (°C per km)", 4.0, 8.0, step=0.1, key="t_lapse",
-              help="The lapse rate. 6 °C per km is a typical value for Himalayan valleys.")
+    st.slider("Temperature drop with height (°C per km, yearly average)", 4.0, 8.0, step=0.1, key="t_lapse",
+              help=f"The lapse rate. {MEASURED_LAPSE} °C per km is the yearly average measured between the Kyanjing and "
+                   f"Yala Base Camp stations. The model uses the measured month-by-month pattern "
+                   f"({min(KYANJIN_TO_BASE_CAMP_LAPSE):.1f}–{max(KYANJIN_TO_BASE_CAMP_LAPSE):.1f} °C per km), "
+                   f"scaled to the average you set here.")
     st.slider("Extra precipitation per 100 m of height (%)", 0.0, 20.0, step=0.5, key="t_pgrad")
-    st.slider("Melt per degree per day (mm of water)", 3.0, 12.0, step=0.5, key="t_ddf",
-              help="The degree-day factor: how much ice melts for each °C above zero, per day.")
+    st.slider("Bare ice: melt per degree per day (mm of water)", 3.0, 15.0, step=0.01, key="t_ddf",
+              help="The degree-day factor for ice: how much ice melts for each °C above zero, per day. "
+                   "8.63 is the literature value used for Nepal by Shea et al. (2015).")
+    st.slider("Snow: melt per degree per day (mm of water)", 1.0, 10.0, step=0.01, key="t_ddf_snow",
+              help="Snow is brighter than ice, so it melts more slowly. 5.3 is the literature value used for "
+                   "Nepal by Shea et al. (2015).")
+    st.toggle("Add sunshine to the melt rule", key="t_sunshine",
+              help="Enhanced temperature index: melt also grows with the sunshine the surface absorbs, measured by "
+                   "the ICIMOD Yala Glacier weather station (dark ice absorbs ~77 %, snow ~30 %). Factors from Litt et al. "
+                   "(2019). When on, the two melt-per-degree sliders above are not used.")
     st.slider("Ice softness A (log₁₀ Pa⁻³ s⁻¹)", -25.0, -23.0, step=0.05, key="t_log_a",
               help="Glen's flow-law rate factor. −23.6 is ice at 0 °C; colder ice is stiffer and flows slower.")
     st.toggle("Ice slides on its bed", key="t_sliding",
@@ -133,8 +160,11 @@ dx = float(ss.t_dx)
 record = get_record()
 data = get_site(dx)
 period = (data.site.start_year, max(data.observed))
-base = ClimateParams.from_record(record, *period, lapse_rate=ss.t_lapse / 1000, p_gradient=ss.t_pgrad / 100,
-                                 ddf=ss.t_ddf / 1000)
+lapse = {} if ss.t_lapse == TEACHER_DEFAULTS["t_lapse"] else {"lapse_rate": ss.t_lapse / 1000}  # default: as measured
+melt = {k: ss[s] / 1000 for k, s in (("ddf", "t_ddf"), ("ddf_snow", "t_ddf_snow")) if ss[s] != TEACHER_DEFAULTS[s]}
+if ss.t_sunshine != TEACHER_DEFAULTS["t_sunshine"]:
+    melt["melt_model"] = "eti" if ss.t_sunshine else "ti"
+base = ClimateParams.from_record(record, *period, p_gradient=ss.t_pgrad / 100, **lapse, **melt)
 flow = FlowParams(glen_a=10 ** ss.t_log_a, sliding=5.7e-20 if ss.t_sliding else 0.0)
 hist = get_history(dx, base, flow)
 today = hist.present_year
@@ -324,6 +354,75 @@ with tabs[2]:
             f"so it misses details such as a snowy winter or a sunny summer. That's why its future runs are \"what if\" "
             f"experiments, not forecasts.")
 
+    st.subheader("Does the model's weather match the real weather stations?")
+    tuning = hist.climate.t_annual_ref - ClimateParams.from_record(record, *period).t_annual_ref
+    fix = dict(zip(MONTH_NAMES, AWS_MINUS_ERA5LAND))
+    lapse_by_month = dict(zip(MONTH_NAMES, KYANJIN_TO_BASE_CAMP_LAPSE))
+    gentlest, steepest = min(lapse_by_month, key=lapse_by_month.get), max(lapse_by_month, key=lapse_by_month.get)
+    full_name = dict(zip(MONTH_NAMES, calendar.month_name[1:]))
+    tuning_text = (f"only had to change the temperature by **{tuning:+.2f} °C**: the model's weather and the real "
+                   f"thermometers agree almost without tuning. That is a good sign that its melt rule is sensible, on average."
+                   if abs(tuning) < 0.3 else f"had to change the temperature by **{tuning:+.1f} °C**.")
+    st.markdown(
+        f"The computer reconstruction of the weather (the *reanalysis*) gets the seasons wrong at Kyanjin: its winters "
+        f"are 2–3 °C too cold. So we corrected every month to match the Kyanjing weather station on average "
+        f"(January {fix['Jan']:+.1f} °C, July {fix['Jul']:+.1f} °C).\n\n"
+        f"To get from the village up to the glacier, the model also needs to know how fast the air cools as you climb. "
+        f"We measured that too, month by month, between the Kyanjing station and the Yala Base Camp station "
+        f"{YALA_BASE_CAMP.elevation - KYANJING.elevation:,.0f} m higher: from {lapse_by_month[gentlest]:.1f} °C per km "
+        f"in {full_name[gentlest]} to {lapse_by_month[steepest]:.1f} °C per km in {full_name[steepest]}. In the monsoon the air is moist, and "
+        f"rising moist air releases heat as its water vapour condenses, so it cools more slowly. With the measured "
+        f"seasons and cooling, tuning the model to the ice loss {tuning_text}")
+    stations = get_stations()
+    if not stations:
+        st.caption(
+            f"ICIMOD shares the hourly records of all three stations (2012–2019; on the glacier 2016–2019) for free after registering "
+            f"(Kyanjing doi:{KYANJIN.data_doi}, Yala Base Camp doi:10.26066/RDS.26859, Yala Glacier "
+            f"doi:10.26066/RDS.1972507). HimSim includes only the 12 monthly corrections worked out from Kyanjing. "
+            f"We haven't yet confirmed that we may pass the data on, so they aren't included here. Put the downloads "
+            f"on this computer to see the comparison.")
+    else:
+        compared = {n: station_comparison(hist, record, r, reanalysis=get_uncorrected_record()).dropna(subset=["station_t_c"])
+                    for n, r in stations.items()}
+
+        def warmer(rows) -> float:
+            return float((rows["model_t_c"] - rows["station_t_c"]).mean())
+
+        def monsoon(rows):
+            return rows[rows.index.month.isin([6, 7, 8, 9])]
+
+        heights = {s.name: f"{s.elevation:.0f} m" if not s.moves else f"{s.elevation:.0f}/{s.moves[-1][1]:.0f} m"
+                   for s in STATIONS}
+        bias = pd.DataFrame([{"station": f"{n} ({heights[n]})", "year": warmer(c), "monsoon": warmer(monsoon(c))}
+                             for n, c in compared.items()])
+        st.plotly_chart(viz.station_bias_chart(bias), use_container_width=True)
+        lines = []
+        if YALA_BASE_CAMP.name in compared:
+            bc = compared[YALA_BASE_CAMP.name]
+            lines.append(
+                f"**At Yala Base Camp** ({YALA_BASE_CAMP.elevation:.0f} m, on rock beside the glacier) the model's air "
+                f"is {warmer(bc):+.1f} °C away from the thermometer over the year and {warmer(monsoon(bc)):+.1f} °C in "
+                f"the monsoon, when Yala melts, over {len(bc)} months. (Base Camp also helped set the cooling rate, so "
+                f"this mostly checks that the pieces fit together.)")
+        if YALA_GLACIER.name in stations and YALA_BASE_CAMP.name in stations:
+            on_ice = lapse_rates(stations[YALA_BASE_CAMP.name], stations[YALA_GLACIER.name])
+            lines.append(
+                f"**On the glacier itself** the air is {(on_ice['t_low'] - on_ice['t_high']).mean():.1f} °C colder "
+                f"than at Base Camp, although the station is only about 200–240 m higher. The ice chills the air "
+                f"just above it, like the air above a block of ice in a cool box. The model's temperatures describe "
+                f"the air *away* from the ice (like at Kyanjin and Base Camp), and its melt rule was set up for that.")
+        st.markdown("\n\n".join(lines))
+        if KYANJING.name in compared:
+            with st.expander("Kyanjin month by month, and rain and snow"):
+                st.plotly_chart(viz.station_check_chart(compared[KYANJING.name], MONTH_NAMES), use_container_width=True)
+                p = station_comparison(hist, record, stations[KYANJING.name]).dropna(subset=["station_p_mm"])
+                if len(p):
+                    st.caption(
+                        f"**Rain and snow:** the Kyanjing gauge broke down often, so we only trust {len(p)} of its months. "
+                        f"In those months it collected **{p['station_p_mm'].sum():,.0f} mm**; the model assumed "
+                        f"**{p['model_p_mm'].sum():,.0f} mm**. Keep in mind that gauges usually catch less than really "
+                        f"falls when it is windy or snowing.")
+
     with st.expander("Where on the glacier did the ice thin? (survey maps)"):
         cols = st.columns(len(hist.comparisons))
         for col, (year, df) in zip(cols, hist.comparisons.items()):
@@ -343,9 +442,9 @@ with tabs[2]:
         st.markdown(
             "**Grading:** ✅ *matches* = inside the measurement's stated uncertainty (or within 10 % if none is given); "
             "🟡 *close* = within 25 %; ❌ *off* = further away.\n\n"
-            f"**Tuning:** the weather-record temperature was raised by {hist.climate.t_annual_ref - raw:+.2f} °C so that the "
-            f"model's {period[0]}–{period[1]} average thinning equals the measured {hist.target_rate:.2f} m per year. "
-            "Reanalysis temperatures in steep Himalayan valleys are often a degree or two too cold.\n\n**Sources:**\n" +
+            f"**Tuning:** the weather-record temperature (already corrected to the Kyanjing station's seasons) was raised "
+            f"by {hist.climate.t_annual_ref - raw:+.2f} °C so that the model's {period[0]}–{period[1]} average thinning "
+            f"equals the measured {hist.target_rate:.2f} m per year.\n\n**Sources:**\n" +
             "\n".join(f"- {s}" for s in dict.fromkeys(rc["source"])) +
             "\n\n**How the model glacier was built:**\n" + "\n".join(f"- {note}" for note in data.notes))
 
@@ -376,13 +475,16 @@ with tabs[3]:
             st.markdown(
                 f"""
 - **Temperature:** the ERA5-Land *reanalysis*, a computer reconstruction of past weather built from millions of
-  observations, adjusted to the height of Kyanjin. It has no gaps, which real stations almost always do.
+  observations, adjusted to the height of Kyanjin. It has no gaps, which real stations almost always do. But its
+  winters are 2–3 °C too cold here, so each calendar month is shifted to match the Kyanjing station's 2012–2019
+  average. The ups and downs from year to year, and the warming trend, are still ERA5-Land's.
 - **Precipitation:** the ERA5 reanalysis gives the **pattern** (which months and years were wetter), but it says about
   **1800 mm** falls at Kyanjin each year, roughly double what the rain gauge there measures (**{KYANJIN.annual_precip_mm:.0f} mm**,
   Immerzeel et al. 2014). Global models struggle with rain in steep Himalayan valleys. So we keep the pattern and scale
   the amount to match the gauge. Scientists call this *bias correction*.
 - **The real station:** the Kyanjing weather station (run by DHM Nepal, ICIMOD and Utrecht University) shares its data
-  openly after a free registration: doi:{KYANJIN.data_doi}.
+  after a free registration: doi:{KYANJIN.data_doi}. Its hourly record (2012–2019) is too short and gappy to drive the
+  model on its own, but it fixes the reanalysis's seasons (see tab 3).
 
 Sources:
 """ + "\n".join(f"- {s}" for s in record.sources))
