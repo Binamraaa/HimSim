@@ -21,10 +21,17 @@ The owner is also learning the physics: explain *why* when changing physics or n
 Python env: Anaconda **base** (`C:\Users\ALiEN\anaconda3\python.exe`, py3.9). Keep code 3.9-compatible
 (`from __future__ import annotations`; no `match`).
 ```bash
-python -m pytest                                   # 49 tests, ~80 s once cached; must stay green
-python -m streamlit run app/streamlit_app.py       # open http://127.0.0.1:8501 (not localhost: a cached app lives there)
+python -m pytest                                   # 58 tests, ~90 s once cached; must stay green
+python -m web                                      # student website, http://127.0.0.1:8600 (FastAPI + web/static)
+python -m streamlit run app/streamlit_app.py       # teacher lab, http://127.0.0.1:8501 (not localhost: a cached app lives there)
 python scripts/fetch_kyanjin_climate.py            # rebuild the Kyanjin climate CSV (needs internet)
+python scripts/build_space.py                      # Hugging Face Space in dist/hf-space (rebuilds web/data bundle)
 ```
+**Deploying:** the public site is a Hugging Face Space (Docker, Python 3.9, pinned versions in `build_space.py`, which
+must match the local env so the bundle unpickles). Rebuild and re-upload after *any* change to `himsim/` or `web/`:
+the bundle's history replay must come from the same code that runs the futures. Upload only after the owner says so.
+The Space gets the bundle (50 m derived grids, allowed by the DEM owner 3 Nov 2026) and station **statistics**, never
+raw DEMs or ICIMOD files. Test the bundle path locally with `HIMSIM_WEB_BUNDLE=... python -m web` from `dist/hf-space`.
 Headless app check: `tests/test_app.py` (`streamlit.testing.v1.AppTest`). Don't use `st.pills`/`st.segmented_control`:
 AppTest in Streamlit 1.42 can't drive them (it breaks every later interaction); use `st.radio(horizontal=...)`.
 Prepared sites and history runs are cached on disk in `data/cache/` (`himsim.store.cached`), keyed on the inputs
@@ -44,7 +51,8 @@ himsim/climate/openmeteo.py   Open-Meteo archive API client (ERA5 / ERA5-Land)
 himsim/climate/kyanjin.py     KYANJIN facts, load_record() (+ AWS_MINUS_ERA5LAND seasonal correction,
                               KYANJIN_TO_BASE_CAMP_LAPSE monthly lapse rates), load_kyanjing_aws()
 himsim/climate/icimod_aws.py  AwsStation registry (Kyanjing, Yala Base Camp, Yala Glacier), read_aws, known faults,
-                              aws_monthly (QC), load_aws, lapse_rates, radiation_inputs (SW_in, albedo, daily T spread)
+                              aws_monthly (QC), load_aws, lapse_rates, radiation_inputs (SW_in, albedo, daily T spread,
+                              snow_ageing fit from albedo + SR50, wet_day_share)
 himsim/climate/data/          kyanjin_monthly.csv (versioned; header documents provenance)
 himsim/glacier/climate.py     ClimateParams (.from_record), Scenario (+ observed-year replay), ClimateChange + PRESETS
 himsim/glacier/smb.py         annual_smb (snowpack: snow melts first, then ice), melt_rates ("ti" degree days or "eti"
@@ -57,8 +65,17 @@ himsim/glacier/observations.py  Measurement (cited field data + grading rule), Y
 himsim/glacier/history.py     calibrate(), historical_scenario(), run_history()/prepare_history() -> HistoryRun
 himsim/glacier/validation.py  geodetic_rate, band_comparison, reality_check (model vs every Measurement), yearly_mass_balance
 himsim/viz.py                 all Plotly figures + colour roles
-app/streamlit_app.py            UI only; no physics. Guided tabs: 1 Meet Yala · 2 Change the climate · 3 Can we trust it? ·
-                                Learn more. Teacher settings in the collapsed sidebar.
+web/api.py                      student website API (FastAPI). No physics: calls himsim with standard settings and
+                                returns numbers, student text and viz.py figures as JSON. Mirrors the lab's wording.
+web/static/                     index.html, styles.css, app.js: plain JS, no build step; Plotly.js served from the
+                                installed plotly package (/vendor/plotly.min.js), so it works offline. "Clean glacier"
+                                palette (bg #F6F8FB, blue #1F5FA8, orange #E07A3F for loss, slate #1E2A38).
+web/bundle.py                   deploy bundle (Model pickled + gzip): `python -m web.bundle`; `HIMSIM_WEB_BUNDLE` loads it
+scripts/build_space.py          assembles dist/hf-space (code + bundle + Dockerfile + Space card)
+web/static/guide.js             student guide: hover tips (GUIDE, one entry per `data-guide` hook in index.html), the
+                                first-visit welcome tour and 12 "Try this" missions that complete from what students do.
+                                Numbers only from API data (app.js sends `himsim:*` events); progress in localStorage.
+app/streamlit_app.py            teacher lab (UI only; no physics). Same 4 steps plus every model setting in the sidebar.
 app/how_it_works.md             student explainer; update whenever physics changes, and re-verify its numbers
 scripts/                        one-off data builders
 legacy/                         archived 2025 scripts: never edit or import
@@ -130,10 +147,21 @@ legacy/                         archived 2025 scripts: never edit or import
   W⁻¹ m² d⁻¹ (Litt et al. 2019 Table S4, Yala monsoon 2014 and 2016; chosen before running). Station inputs from the
   Yala Glacier AWS: SW_in 128 (Sep)–307 (Mar) W m⁻², albedo ice 0.23 / snow 0.70 (daily, split at 0.4, Litt's
   threshold); daily-T spread 0.68–3.28 °C (Base Camp) turns monthly means into a share of melting days (normal
-  distribution), so melt has no jump at 0 °C. Litt gives no T_ETI value; the model's 0 °C is used. Results vs "ti":
-  6/3/2 (gradient 0.56, area 2012 off), tongue −55 vs −44 m, RMSE 7.1 m, shift +0.31 °C, today's climate keeps 10 %.
-  Sensitivities: SRF 0.2 (Litt's whole-year 2014/2017 fits) → gradient 0.83, 6/5/0, shift −0.55; on-ice air (T_ETI
-  +1.9 °C) → 0.42, 4/4/3; both → 0.69, 7/3/1. Picking SRF after seeing the gradient would be tuning to a check.
+  distribution), so melt has no jump at 0 °C. Litt gives no T_ETI value; the model's 0 °C is used.
+  **Snow ageing** (on within "eti"): snow albedo = old + (fresh − old)·rt/(1+rt), r = wet-day share × snow fraction,
+  i.e. the mean of an exponential decay under random snowfalls. Fitted at the Yala Glacier AWS 2016–2019
+  (`icimod_aws.snow_ageing`: SR50 surface rise ≥ 2 cm = snowfall, 767 snow days): fresh 0.79, old 0.64, 2.8 days
+  (R² 0.23; thresholds 1–5 cm / 30–120 days give 0.76–0.81, 0.62–0.66, 2.4–4.5 d). Wet-day share (≥ 1 mm) from the
+  Base Camp gauge, trusted months only (1–5 per calendar month, so weak). Form from Oerlemans & Knap (1998).
+  Results ("eti" + ageing): 7/2/2 (gradient 0.59, area 2012 off), tongue −56 vs −44 m, RMSE 7.1 m, shift +0.28 °C,
+  today's climate keeps 10 %, +1.5/+2/+4 °C gone ~2080/2071/2057. Constant snow albedo 0.70 gave 6/3/2 (gradient
+  0.56), −55 m, 7.1 m, +0.31 °C, 10 %. Every threshold variant and a 20-day decay give gradient 0.59–0.61, so snow
+  albedo is not the main cause of the gradient misfit.
+  Sensitivities (constant snow albedo): SRF 0.2 (Litt's whole-year 2014/2017 fits) → gradient 0.83, 6/5/0, shift
+  −0.55; on-ice air (T_ETI +1.9 °C) → 0.42, 4/4/3; both → 0.69, 7/3/1. SRF 0.2 + ageing → 0.92, 7/4/0, but the owner
+  decided (31 Oct 2026) that SRF must not be picked after seeing the reality check: that would be tuning to a check.
+  Scripted variants must use `ClimateParams.from_record(record, ..., melt_model="eti")`, never `ClimateParams(...)`
+  (that silently uses the idealised climate).
 - Calibrated station temperature 3.91 °C: the tuning shift on the station-corrected record is **+0.24 °C**
   (+0.05 with one 8 mm factor; +1.41 with a constant 6 °C/km; ERA5-Land climatology +1.42 °C). ELA 5422 m
   (1981–2015) → 5532 m (today).
@@ -161,11 +189,17 @@ If a change moves these, say so explicitly and explain why.
 - Halfar dome + mass-conservation tests guard the flow numerics; `test_ice_domain_*` and
   `test_thickness_ignores_terrain_outside_glacier` guard the domain logic; `test_kyanjin_record_matches_station_facts`
   guards the climate data; `test_equal_melt_factors_give_the_single_factor_model`, `test_snow_melts_slower_than_ice`
-  and `test_separate_factors_steepen_the_smb_gradient` guard the snowpack; `test_aws_reader_quality_control`, `test_kyanjing_aws_matches_known_facts`,
+  and `test_separate_factors_steepen_the_smb_gradient` guard the snowpack; `test_snow_albedo_follows_snowfall_frequency`,
+  `test_snow_ageing_cuts_melt_high_up_and_adds_it_low_down` and `test_radiation_constants_match_station_files` guard the
+  sunshine rule's snow ageing; `test_aws_reader_quality_control`, `test_kyanjing_aws_matches_known_facts`,
   `test_seasonal_correction_constants_match_station_file`, `test_lapse_rate_constants_match_station_files`,
   `test_measured_monthly_lapse_rates`, `test_station_faults_moves_and_lapse_rates`,
   `test_langtang_stations_known_facts`, `test_yala_climate_matches_kyanjing_station` and
-  `test_yala_model_monsoon_matches_base_camp` guard the AWS readers, the seasonal correction and the station checks. `test_yala_reality_check` guards the field-data matches; `test_app.py` drives the UI.
+  `test_yala_model_monsoon_matches_base_camp` guard the AWS readers, the seasonal correction and the station checks. `test_yala_reality_check` guards the field-data matches; `test_app.py` drives the lab UI; `test_web.py` checks every
+website endpoint (and input validation), that every `data-guide` hook has guide text, and that the deploy
+bundle gives the same answers as the raw data. Check the website itself in a
+browser after front-end changes. When the model changes, reread the guide's mission answers: they are built from live
+numbers, but their wording ("the shrinking almost stops", "the tongue thins first") describes today's results.
 Yala tests are skipped when DEMs are absent.
 - Add a test for every new physics component or data source.
 
@@ -190,5 +224,6 @@ Code: AGPL-3.0-or-later (`LICENSE`). Data keep their own licences (see README "D
 dependencies and data whose terms are compatible, and credit every new data source in the README.
 
 ## Working style
-- Keep `app/` free of physics and `himsim` free of Streamlit.
+- Keep `app/` and `web/` free of physics and `himsim` free of Streamlit and FastAPI. Student-facing text in
+  `web/api.py` and `app/streamlit_app.py` must say the same thing; change both together.
 - Don't commit or push unless asked. `main` is the published branch (github.com/Binamraaa/HimSim).

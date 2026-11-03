@@ -10,12 +10,25 @@ to 2100, with the science explained along the way.
 ## Quick start (Windows, Anaconda)
 
 ```bash
-conda activate base                      # has every dependency; or: conda env create -f environment.yml
-python -m pytest                         # 33 tests incl. the Halfar benchmark and a check against field data
-python -m streamlit run app/streamlit_app.py
+conda activate base                      # or: conda env create -f environment.yml
+pip install fastapi uvicorn               # for the student website (not in Anaconda base)
+python -m pytest                         # 58 tests incl. the Halfar benchmark and a check against field data
+python -m web                            # student website:  http://127.0.0.1:8600
+python -m streamlit run app/streamlit_app.py   # teacher lab with every model setting
 ```
 
 The DEMs are not in git (≈1.7 GB). Put them in `DEM_and_ortho/DEM_and_ortho/` or point `HIMSIM_DATA` at their folder.
+
+## Put the website online (Hugging Face Spaces)
+
+```bash
+python scripts/build_space.py            # needs the DEMs; writes dist/hf-space/ (~1 MB)
+huggingface-cli upload <user>/<space> dist/hf-space . --repo-type space
+```
+
+The host doesn't need the DEMs or the ICIMOD station files. `scripts/build_space.py` packs a small deploy bundle
+(`web/bundle.py`): the 50 m model glacier derived from the survey DEMs, the 1981 → today replay and the
+weather-station checks as statistics only. The Space is a Docker app: Python 3.9, two workers, port 7860.
 
 ## Use it from Python
 
@@ -44,7 +57,9 @@ run.to_frame().to_csv("my_scenario.csv")
 | `himsim/climate/` | Kyanjin climate record (ERA5-Land / ERA5, bias-corrected to the station), Open-Meteo client |
 | `himsim/glacier/` | scenarios, mass balance, SIA flow, initial thickness, time stepping, sites, history replay, validation |
 | `himsim/viz.py` | Plotly figures |
-| `app/` | Streamlit scenario lab + "How it works" explainer |
+| `web/` | Student website: FastAPI server (`web/api.py`, no physics) and plain HTML/CSS/JS pages (`web/static/`), with hover tips, a welcome tour and "Try this" missions (`guide.js`); `web/bundle.py` packs it for hosting |
+| `scripts/` | Data builders and `build_space.py` (the Hugging Face Space) |
+| `app/` | Streamlit teacher lab (every model setting) + "How it works" explainer |
 | `tests/` | Physics tests (mass conservation, Halfar dome, SMB behaviour, Yala hindcast) |
 | `legacy/` | The original 2025 scripts, archived |
 
@@ -70,7 +85,9 @@ share its source under the same licence. The data listed below keep their own li
 - Melt factors: Shea et al. (2015), The Cryosphere 9, 1105–1128, doi:10.5194/tc-9-1105-2015 (snow 5.3, ice
   8.63 mm w.e. °C⁻¹ d⁻¹).
 - Sunshine melt rule (optional): Litt et al. (2019), Scientific Reports 9, 5264, doi:10.1038/s41598-019-41657-5
-  (Yala factors, Table S4); sunshine and albedo from the ICIMOD Yala Glacier AWS.
+  (Yala factors, Table S4); sunshine, albedo and snow ageing (albedo + snow-depth sensor) from the ICIMOD Yala
+  Glacier AWS, snowfall frequency from the Yala Base Camp gauge. Snow-ageing curve: Oerlemans & Knap (1998),
+  J. Glaciol. 44(147), 231–238, doi:10.1017/S0022143000002574.
 - Copernicus DEM GLO-30: © DLR e.V. 2010–2014 and © Airbus Defence and Space GmbH 2014–2018, provided under
   COPERNICUS by the European Union and ESA.
 

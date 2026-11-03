@@ -4,7 +4,7 @@ version = "0.2.0"
 description = "Learning-oriented simulation toolkit for Himalayan glaciers and mass flows"
 requires-python = ">=3.9"
 license = {text = "AGPL-3.0-or-later"}
-dependencies = ["numpy", "scipy", "pandas", "rasterio", "pyproj", "plotly", "streamlit"]
+dependencies = ["numpy", "scipy", "pandas", "rasterio", "pyproj", "plotly", "streamlit", "fastapi", "uvicorn", "markdown"]
 
 [project.optional-dependencies]
 dev = ["pytest"]

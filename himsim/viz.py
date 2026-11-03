@@ -42,7 +42,10 @@ def glacier_animation(grid: Grid, bed: np.ndarray, frames: Sequence[tuple[str, n
     rows, cols = np.nonzero(focus)
     r0, r1 = max(rows.min() - pad_cells, 0), min(rows.max() + pad_cells + 1, grid.ny)
     c0, c1 = max(cols.min() - pad_cells, 0), min(cols.max() + pad_cells + 1, grid.nx)
-    x, y, b = grid.x[c0:c1] / 1000.0, grid.y[r0:r1] / 1000.0, bed[r0:r1, c0:c1]
+    # distances (km) from the south-west corner of the view: easier to read than map coordinates
+    x = (grid.x[c0:c1] - grid.x[c0:c1].min()) / 1000.0
+    y = (grid.y[r0:r1] - grid.y[r0:r1].min()) / 1000.0
+    b = bed[r0:r1, c0:c1]
     h_max = h_max or max(max(float(h.max()) for _, h in frames), 1.0)
 
     def ice(h):
@@ -74,7 +77,7 @@ def glacier_animation(grid: Grid, bed: np.ndarray, frames: Sequence[tuple[str, n
     fig.update_layout(
         title=f"{title}{frames[0][0]}", height=600, **_LAYOUT,
         scene=dict(
-            xaxis_title="East (km)", yaxis_title="North (km)", zaxis_title="Height (m)",
+            xaxis_title="Distance east (km)", yaxis_title="Distance north (km)", zaxis_title="Height (m)",
             zaxis=dict(range=[z_low, z_top]), aspectmode="manual",
             aspectratio=dict(x=len(x) * grid.dx / span, y=len(y) * grid.dx / span,
                              z=vertical_exaggeration * (z_top - z_low) / span),
@@ -96,12 +99,15 @@ def glacier_animation(grid: Grid, bed: np.ndarray, frames: Sequence[tuple[str, n
 def field_map(grid: Grid, values: np.ndarray, title: str, colorbar_title: str, colorscale,
               zmin: float | None = None, zmax: float | None = None, contour_mask: np.ndarray | None = None,
               focus_pad_m: float = 400.0) -> go.Figure:
-    """Plan-view map of a 2D field (UTM km), zoomed to the data plus a margin, with an optional outline."""
-    xk, yk = grid.x / 1000.0, grid.y / 1000.0
+    """Plan-view map of a 2D field, zoomed to the data plus a margin, with an optional outline.
+
+    Axes are distances (km) from the south-west corner of the model grid, not map coordinates.
+    """
+    xk, yk = (grid.x - grid.x.min()) / 1000.0, (grid.y - grid.y.min()) / 1000.0
     fig = go.Figure(go.Heatmap(
         x=xk, y=yk, z=values, colorscale=colorscale, zmin=zmin, zmax=zmax,
         colorbar=dict(title=colorbar_title, thickness=14),
-        hovertemplate="E %{x:.2f} km<br>N %{y:.2f} km<br>%{z:.1f}<extra></extra>",
+        hovertemplate="%{x:.2f} km east, %{y:.2f} km north<br>%{z:.1f}<extra></extra>",
     ))
     if contour_mask is not None:
         fig.add_trace(go.Contour(
@@ -116,8 +122,8 @@ def field_map(grid: Grid, values: np.ndarray, title: str, colorbar_title: str, c
         fig.update_xaxes(range=[xk[cols.min()] - pad, xk[cols.max()] + pad])
         fig.update_yaxes(range=[yk[rows.max()] - pad, yk[rows.min()] + pad])
     fig.update_layout(title=title, height=460, **_LAYOUT)
-    fig.update_yaxes(scaleanchor="x", scaleratio=1, title="Northing (km, UTM 45N)", showgrid=False)
-    fig.update_xaxes(title="Easting (km, UTM 45N)", showgrid=False)
+    fig.update_yaxes(scaleanchor="x", scaleratio=1, title="Distance north (km)", showgrid=False)
+    fig.update_xaxes(title="Distance east (km)", showgrid=False)
     return fig
 
 

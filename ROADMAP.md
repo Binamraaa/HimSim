@@ -11,7 +11,7 @@ the outcome with the science explained. Learning comes first, and **the data alw
 - Calibration to the 1981→2015 geodetic thinning; hindcast validation (glacier-mean −20.3 m modelled vs −18.5 m observed, band RMSE 6.6 m).
 - Streamlit scenario lab with 7 presets, scenario comparison, SMB profile, validation and explainer tabs.
 
-## Phase 1: Make Yala trustworthy and richer (in progress, branch `phase1-climate-dem`)
+## Phase 1: Make Yala trustworthy and richer (in progress, on `main`)
 - [x] Kyanjin climate package: ERA5-Land temperature + ERA5 precipitation (1960–2025), precipitation bias-corrected
       to the gauge (867 mm/yr); seasonal cycle from data; loader for ICIMOD station files.
 - [x] Replay observed weather 1981→2025; calibrate on real yearly forcing; validate the post-2007 speed-up.
@@ -45,7 +45,10 @@ the outcome with the science explained. Learning comes first, and **the data alw
       Yala factors, as a teacher option. With the monsoon factors it flattens the SMB gradient (0.56) though it improves
       the tongue; with SRF 0.2 it gives 0.83. Owner decision (31 Oct 2026): degree days stay the default; the
       sunshine rule remains a teacher option, and SRF is not to be picked after seeing the reality check.
-- [ ] SMB gradient still 0.70 vs 1.04. Candidates: albedo that darkens with snow age and with height of bare ice;
+- [x] Snow ageing in the sunshine rule: fresh-snow albedo 0.79 decaying to 0.64 in 2.8 days, fitted at the Yala
+      Glacier AWS, with the Base Camp wet-day frequency. Sunshine-rule gradient 0.56 → 0.59, reality check 6/3/2 → 7/2/2;
+      default ("ti") unchanged. Snow albedo is not the main cause of the gradient gap (all variants 0.59–0.61).
+- [ ] SMB gradient still 0.70 vs 1.04. Candidates: albedo of bare ice varying with height;
       topographic shading and aspect; on-ice air temperature (glacier cooling) in the melt rule.
 - [ ] Ice thickness from Farinotti et al. (2019) / Millan et al. (2022); the tongue over-thinning points here.
 - [ ] Parameter-uncertainty ensembles (run a scenario 20× with perturbed DDF / thickness / A; show spread).
@@ -55,7 +58,22 @@ the outcome with the science explained. Learning comes first, and **the data alw
 ## Phase 2: More glaciers of Nepal
 - [ ] Generic `GlacierSite.from_rgi(rgi_id)`: outline from the GLIMS WFS (layer `GLIMS:RGI2000-v7.0-G-15_south_asia_east_epsg3857`, proven to work),
       terrain from Copernicus GLO-30, calibration target from Hugonnet et al. (2021) per-glacier geodetic mass balance.
+      If the GLIMS WFS is down (502 on 2 Nov 2026), OGGM mirrors RGI 6.2 (`cluster.klima.uni-bremen.de/~oggm/rgi/`)
+      and the Hugonnet per-glacier rates (`.../~oggm/geodetic_ref_mb/`).
 - [ ] Candidate glaciers with field data: Rikha Samba, Mera, Pokalde, AX010, Changri Nup, Lirung, Langtang.
+      Debris-covered (Lirung, Langtang) and lake-calving glaciers need new physics; clean-ice benchmark glaciers first.
+      Feasibility check (2 Nov 2026):
+  - **Rikha Samba (next):** one named RGI polygon, RGI60-15.04847 (6.504 km², 5380–6513 m, Sept 2001), a single
+    south-flowing valley glacier (2603 cells at 50 m), UTM 44N. Hugonnet 2000–2020: −0.44 ± 0.14 m w.e./yr (91 % of
+    the area measured). Field data, all ICIMOD: stake mass balance since 2011 (WGMS; Stumm et al. ESSD), raw GPR 2015
+    (doi:10.26066/RDS.36030, CC BY 4.0), AWS (doi:10.26066/RDS.26858, CC BY 4.0; period, elevation and variables not on
+    the page). Still to settle: a precipitation reference for the Mustang rain shadow; no historical survey DEMs, so
+    the start surface is Copernicus (~2011–2015) with a 2001 outline.
+  - **Mera:** not one RGI polygon. The massif is split into 03582/03583/03584/03586/03590–03595 (03583 reaches
+    4933–6312 m, close to the published 4940–6420 m). The outline must be taken from Wagnon et al. (2021) before any
+    run (Cambridge and IRD were both offline on 2 Nov 2026). Hugonnet 2000–2020 for those pieces: −0.20 to −0.37 m
+    w.e./yr. Climate: GLACIOCLIM database; Zenodo 14015618 (Mera/Khare stations 2019–2022, licence unchecked). The
+    ESSD 2026 Everest AWS set (doi:10.5194/essd-18-7253-2026) has no Mera station.
 - [ ] Nepal-wide overview with OGGM (flowline model; needs WSL/Linux) as a comparison layer, not a replacement.
 
 ## Phase 3: Rasuwa 2026 mass-flow module (`himsim.massflow`), a separate case study, parked
@@ -71,12 +89,20 @@ became a debris flood that reached Rasuwagadhi in ~7.5 minutes. That is a **mass
 - [ ] Benchmark against r.avaflow on the same input.
 
 ## Phase 4: The platform
-- [ ] Classroom features: guided activities/worksheets per tab, a glossary, Nepali-language UI.
+- [x] In-app guide on the website (Nov 2026): hover tips on every section ("what you see / how to read it / what it
+      means"), a 5-card welcome tour on the first visit, and 12 "Try this" missions (tipping point, committed loss,
+      snow vs warming, gradual vs sudden, the snowline, the reality check) that complete from what students do.
+- [ ] Classroom features: printable worksheets with a teacher answer sheet, a glossary, Nepali-language UI.
+- [x] Student website (Nov 2026): `python -m web`, FastAPI + plain HTML/JS, "clean glacier" design; the Streamlit
+      app stays as the teacher lab. Next: teacher settings and the DEM explainer on the website, Nepali UI.
 - [ ] Multi-page app: Glaciers · Mass flows · Learn · About/cite.
 - [ ] Save, share and re-load scenarios as small JSON files; a gallery of instructive scenarios.
-- [ ] Free hosting (Streamlit Community Cloud or Hugging Face Spaces) with DEMs pre-resampled to model resolution (MB, not GB).
+- [ ] Free hosting on Hugging Face Spaces (owner's choice, 3 Nov 2026). Ready: `scripts/build_space.py` builds a 1 MB
+      Space (Docker) from a deploy bundle (`web/bundle.py`: 50 m grids + station statistics); tested locally without
+      DEMs or station files, identical answers. Still to do: create the Space and upload; later a custom domain.
 - [x] Licence: AGPL-3.0-or-later (Oct 2026).
 - [ ] Citation file, contributor guide, docs site.
 
 ## Open questions for the project owner
-- Who produced the 1981/2007/2015 Yala DEMs, and may derived (resampled) versions be published?
+- Who produced the 1981/2007/2015 Yala DEMs? (Publishing derived 50 m versions: allowed, owner, 3 Nov 2026; the
+  producer still needs crediting in the README.)

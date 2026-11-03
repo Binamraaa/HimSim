@@ -23,3 +23,7 @@ Thumbs.db
 .DS_Store
 Meteorological data from Yala Base Camp automatic weather station/
 AWS Yala Glacier/
+
+# Deploy builds (web/data holds the deploy bundle: derived grids, rebuilt by scripts/build_space.py)
+dist/
+web/data/

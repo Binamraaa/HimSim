@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HimSim · Yala Glacier</title>
+  <meta name="description" content="Explore Yala Glacier in Nepal: replay 44 years of real history, then choose the climate and see what happens to the ice.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="HimSim · Yala Glacier">
+  <meta property="og:description" content="A free glacier simulator for students: replay 44 years of a real Himalayan glacier, then choose the climate and see what happens to the ice.">
+  <meta name="twitter:card" content="summary">
+  <meta name="theme-color" content="#1F5FA8">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M2 28 L12 10 L17 18 L21 12 L30 28 Z' fill='%231F5FA8'/%3E%3Cpath d='M12 10 L15.2 15.8 L13 15 L10.6 17.4 L9.6 14.6 Z M21 12 L23.6 16.6 L21.8 16 L20 17.6 L19.6 14.4 Z' fill='%23fff'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+  <script src="/vendor/plotly.min.js" defer></script>
+  <script src="guide.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="#meet" aria-label="HimSim home">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M2 28 L12 10 L17 18 L21 12 L30 28 Z" fill="currentColor"/><path d="M12 10 L15.2 15.8 L13 15 L10.6 17.4 L9.6 14.6 Z M21 12 L23.6 16.6 L21.8 16 L20 17.6 L19.6 14.4 Z" fill="#fff"/></svg>
+        <span>HimSim</span>
+      </a>
+      <nav class="steps" aria-label="Steps">
+        <a href="#meet" data-page="meet"><span class="num">1</span><span class="txt">Meet Yala</span></a>
+        <a href="#future" data-page="future"><span class="num">2</span><span class="txt">Change the climate</span></a>
+        <a href="#trust" data-page="trust"><span class="num">3</span><span class="txt">Can we trust it?</span></a>
+        <a href="#learn" data-page="learn"><span class="num num-learn">i</span><span class="txt">Learn more</span></a>
+      </nav>
+      <div class="guide-menu-wrap">
+        <button type="button" class="guide-toggle" id="guide-btn" aria-haspopup="true" aria-expanded="false" aria-controls="guide-menu">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9.2 9.3a2.9 2.9 0 1 1 3.9 2.7c-.7.3-1.1.9-1.1 1.6v.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17.2" r="1.2" fill="currentColor"/></svg>
+          <span class="txt">Guide</span><span class="guide-badge" id="guide-badge" title="Missions done">0/0</span>
+        </button>
+        <div class="guide-menu" id="guide-menu" hidden>
+          <button type="button" class="menu-item" data-act="tour">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>Replay the welcome tour</button>
+          <div class="menu-item menu-switch" id="tips-row">
+            <span>Hover tips<small>Explain what you point at</small></span>
+            <button type="button" class="switch" id="tips-switch" role="switch" aria-checked="true" aria-label="Hover tips" data-act="tips"></button>
+          </div>
+          <p class="menu-label">Try this missions</p>
+          <div class="menu-missions" id="menu-missions"></div>
+          <button type="button" class="menu-item menu-reset" data-act="reset">Start the missions over</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- 1 · Meet Yala -->
+    <section class="page" id="page-meet" data-page="meet" hidden>
+      <div class="hero">
+        <div class="hero-text">
+          <p class="eyebrow" id="hero-place">Langtang valley, Nepal</p>
+          <h1>Yala Glacier</h1>
+          <p class="lede" id="hero-lede">A small glacier high in the Himalaya that scientists have measured for over 40 years.
+            Replay its real history, then choose the climate and see what happens.</p>
+          <div class="hero-badges" id="hero-badges"></div>
+        </div>
+        <div class="hero-figure" data-guide="meet-lost">
+          <div class="big-number"><span id="hero-lost">…</span><small>of its ice lost<br><span id="hero-since"></span></small></div>
+        </div>
+        <svg class="hero-mountains" viewBox="0 0 1200 220" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M0 220 L0 150 L120 90 L210 140 L330 40 L420 110 L520 70 L640 150 L760 30 L880 120 L980 80 L1100 140 L1200 100 L1200 220 Z" fill="#dbe7f5"/>
+          <path d="M0 220 L0 180 L160 120 L260 170 L380 100 L500 165 L620 120 L760 175 L880 130 L1020 180 L1200 140 L1200 220 Z" fill="#c4d7ee"/>
+          <path d="M330 40 L362 64 L344 62 L330 74 L316 62 L300 66 Z M760 30 L794 58 L776 55 L760 68 L746 56 L728 60 Z" fill="#fff"/>
+        </svg>
+      </div>
+
+      <div class="stats" id="meet-stats" data-guide="meet-stats"></div>
+
+      <section class="card missions" data-missions="meet" aria-label="Try this missions"></section>
+
+      <div class="grid grid-3-2">
+        <article class="card" data-guide="meet-3d">
+          <header class="card-head">
+            <h2><span id="past-3d-title">Watch the glacier shrink</span> <button type="button" class="guide-btn" data-guide-open="meet-3d" aria-label="What am I looking at?" title="What am I looking at?">?</button></h2>
+            <p>Press <strong>▶ Play</strong>. Drag to turn the view, scroll to zoom. Colours show how thick the ice is.</p>
+          </header>
+          <div class="plot plot-3d" id="past-3d"><div class="skeleton"></div></div>
+        </article>
+        <article class="card" data-guide="meet-volume">
+          <header class="card-head">
+            <h2>How much ice is left? <button type="button" class="guide-btn" data-guide-open="meet-volume" aria-label="What am I looking at?" title="What am I looking at?">?</button></h2>
+            <p>The model's ice volume, year by year. The green diamond is a radar measurement the model never saw.</p>
+          </header>
+          <div class="plot" id="past-volume"><div class="skeleton"></div></div>
+          <p class="note" id="radar-note"></p>
+        </article>
+      </div>
+
+      <aside class="callout">
+        <h3>How do we know?</h3>
+        <p id="how-know">Scientists mapped the glacier's surface several times. The model starts from the first map and is fed
+          the weather of every year since.</p>
+      </aside>
+
+      <a class="next-step" href="#future">Next: what happens after today depends on the climate. <strong>Change the climate →</strong></a>
+    </section>
+
+    <!-- 2 · Change the climate -->
+    <section class="page" id="page-future" data-page="future" hidden>
+      <div class="page-head">
+        <p class="eyebrow">Step 2</p>
+        <h1>Change the climate</h1>
+        <p class="lede">Pick an idea or set your own. The model runs from the end of <span class="today">2025</span> with the climate you choose.</p>
+      </div>
+      <section class="card missions" data-missions="future" aria-label="Try this missions"></section>
+      <div class="future-layout">
+        <aside class="card controls" aria-label="Climate controls">
+          <div class="control-group" data-guide="future-presets">
+            <h2>Pick an idea</h2>
+            <div class="chips" id="presets" role="group" aria-label="Climate ideas"></div>
+            <p class="preset-note" id="preset-note"></p>
+          </div>
+
+          <h2>…or set your own</h2>
+          <div class="control" data-guide="future-warming">
+            <div class="control-top"><label for="warming">Temperature change</label><output id="warming-out">+2.0 °C</output></div>
+            <input type="range" id="warming" min="-2" max="5" step="0.1" value="2">
+            <div class="range-ends"><span>−2 °C cooler</span><span>+5 °C warmer</span></div>
+            <p class="hint" id="warming-hint">Compared with today's climate.</p>
+          </div>
+          <div class="control" data-guide="future-precip">
+            <div class="control-top"><label for="precip">Rain and snow</label><output id="precip-out">±0 %</output></div>
+            <input type="range" id="precip" min="-50" max="50" step="5" value="0">
+            <div class="range-ends"><span>50 % drier</span><span>50 % wetter</span></div>
+          </div>
+          <div class="control" data-guide="future-mode">
+            <span class="control-label" id="mode-label">How does the change arrive?</span>
+            <div class="segmented" role="radiogroup" aria-labelledby="mode-label">
+              <button type="button" role="radio" data-gradual="true" aria-checked="true">Gradually, by 2100</button>
+              <button type="button" role="radio" data-gradual="false" aria-checked="false">All at once, now</button>
+            </div>
+          </div>
+          <details class="more">
+            <summary>More options</summary>
+            <div class="control">
+              <div class="control-top"><label for="end-year">Run the model until</label><output id="end-year-out">2100</output></div>
+              <input type="range" id="end-year" min="2050" max="2200" step="10" value="2100">
+              <p class="hint">After 2100 the climate stays at its 2100 level, so you can see how long the glacier takes to catch up.</p>
+            </div>
+          </details>
+        </aside>
+
+        <div class="results" id="results" aria-live="polite">
+          <div class="headline-card" data-guide="future-headline">
+            <p class="headline" id="headline">Running the model…</p>
+            <p class="comparison" id="comparison"></p>
+          </div>
+          <div class="stats stats-4" id="future-stats" data-guide="future-stats"></div>
+
+          <article class="card">
+            <div class="tabs" role="tablist" aria-label="Views">
+              <button role="tab" data-view="compare" aria-selected="true">Compare</button>
+              <button role="tab" data-view="3d" aria-selected="false">3D view</button>
+              <button role="tab" data-view="maps" aria-selected="false">Maps</button>
+              <button role="tab" data-view="why" aria-selected="false">Why?</button>
+              <button type="button" class="tabs-help" data-guide-open="@view"><span class="guide-btn" aria-hidden="true">?</span>What am I looking at?</button>
+            </div>
+
+            <div class="view" data-view="compare" data-guide="future-compare">
+              <div class="plot" id="future-volume"><div class="skeleton"></div></div>
+              <div class="keep-row">
+                <button type="button" class="btn btn-primary" id="keep-btn">Keep this result to compare</button>
+                <button type="button" class="btn" id="clear-btn">Clear kept results</button>
+                <button type="button" class="btn btn-ghost" id="csv-btn">Download results (CSV)</button>
+              </div>
+              <div class="table-wrap" data-guide="future-table"><table class="table" id="future-table"></table></div>
+            </div>
+
+            <div class="view" data-view="3d" data-guide="future-3d" hidden>
+              <div class="plot plot-3d" id="future-3d"><div class="skeleton"></div></div>
+              <p class="note">Press ▶ Play. Colours show how thick the ice is.</p>
+            </div>
+
+            <div class="view" data-view="maps" data-guide="future-maps" hidden>
+              <div class="control control-inline">
+                <div class="control-top"><label for="map-year">Year</label><output id="map-year-out"></output></div>
+                <input type="range" id="map-year" min="0" max="0" step="1" value="0">
+              </div>
+              <div class="grid grid-2">
+                <div class="plot" id="map-thickness"><div class="skeleton"></div></div>
+                <div class="plot" id="map-change"><div class="skeleton"></div></div>
+              </div>
+              <p class="note">Black line: the glacier outline in 2000. Red = the ice got thinner, blue = thicker.</p>
+            </div>
+
+            <div class="view" data-view="why" data-guide="future-why" hidden>
+              <p class="prose">Every year, snow falls on the glacier and some ice melts. Where more snow falls than melts, the
+                glacier grows; where more melts, it shrinks. The height where the two balance is the <strong>snowline</strong>
+                (scientists say <em>equilibrium-line altitude</em>, ELA). The lines show the yearly gain (right of zero) or
+                loss (left of zero) at each height. Warmer air pushes the line left and the snowline up.</p>
+              <div class="plot" id="future-smb"><div class="skeleton"></div></div>
+              <p class="note">Grey band: the heights the glacier covers. If the snowline climbs above the band, the glacier has
+                nowhere left to gain ice and will disappear, even if that takes decades.</p>
+            </div>
+          </article>
+          <a class="next-step" href="#trust">Can you believe these results? <strong>See how the model did against real measurements →</strong></a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3 · Can we trust it? -->
+    <section class="page" id="page-trust" data-page="trust" hidden>
+      <div class="page-head">
+        <p class="eyebrow">Step 3</p>
+        <h1>Can we trust it?</h1>
+        <p class="lede" id="trust-intro"></p>
+      </div>
+      <div class="score" id="trust-score" data-guide="trust-score"></div>
+      <section class="card missions" data-missions="trust" aria-label="Try this missions"></section>
+      <article class="card" data-guide="trust-table">
+        <header class="card-head"><h2>The model against every measurement <button type="button" class="guide-btn" data-guide-open="trust-table" aria-label="What am I looking at?" title="What am I looking at?">?</button></h2></header>
+        <div class="table-wrap"><table class="table table-grades" id="trust-table"></table></div>
+        <div id="trust-struggles"></div>
+      </article>
+      <div class="grid grid-2">
+        <article class="card" id="trust-yearly-card" data-guide="trust-yearly">
+          <header class="card-head"><h2>Good years and bad years <button type="button" class="guide-btn" data-guide-open="trust-yearly" aria-label="What am I looking at?" title="What am I looking at?">?</button></h2></header>
+          <div class="plot" id="trust-yearly"><div class="skeleton"></div></div>
+          <p class="note" id="trust-yearly-text"></p>
+        </article>
+        <article class="card" data-guide="trust-bands">
+          <header class="card-head"><h2>Where on the glacier did the ice thin? <button type="button" class="guide-btn" data-guide-open="trust-bands" aria-label="What am I looking at?" title="What am I looking at?">?</button></h2>
+            <p>Measured (survey maps) and modelled surface change at each height.</p></header>
+          <div class="plot" id="trust-bands"><div class="skeleton"></div></div>
+          <p class="note">The model thins the lowest part of the glacier (the tongue) a little too much and gets the upper part about right.</p>
+        </article>
+      </div>
+      <article class="card" data-guide="trust-weather">
+        <header class="card-head"><h2>Does the model's weather match the real weather stations? <button type="button" class="guide-btn" data-guide-open="trust-weather" aria-label="What am I looking at?" title="What am I looking at?">?</button></h2></header>
+        <div class="grid grid-2 align-start">
+          <div class="prose" id="trust-weather"></div>
+          <div class="plot" id="trust-stations"></div>
+        </div>
+      </article>
+      <details class="card details-card">
+        <summary>How we graded, and where the measurements come from</summary>
+        <div class="prose" id="trust-method"></div>
+      </details>
+    </section>
+
+    <!-- Learn more -->
+    <section class="page" id="page-learn" data-page="learn" hidden>
+      <div class="page-head">
+        <p class="eyebrow">Learn more</p>
+        <h1>How it all works</h1>
+      </div>
+      <div class="tabs tabs-pill" role="tablist" aria-label="Learn more">
+        <button role="tab" data-learn="how" aria-selected="true">How the model works</button>
+        <button role="tab" data-learn="climate" aria-selected="false">Climate data</button>
+      </div>
+      <article class="card prose explainer" data-learn="how" id="learn-how"><div class="skeleton skeleton-text"></div></article>
+      <div data-learn="climate" hidden>
+        <p class="lede" id="climate-intro"></p>
+        <div class="stats stats-3" id="climate-stats"></div>
+        <article class="card" data-guide="learn-annual">
+          <header class="card-head"><h2>Year by year <button type="button" class="guide-btn" data-guide-open="learn-annual" aria-label="What am I looking at?" title="What am I looking at?">?</button></h2></header>
+          <div class="plot" id="climate-annual"><div class="skeleton"></div></div>
+        </article>
+        <article class="card" data-guide="learn-monthly">
+          <header class="card-head"><h2>An average year (1981–2010) <button type="button" class="guide-btn" data-guide-open="learn-monthly" aria-label="What am I looking at?" title="What am I looking at?">?</button></h2></header>
+          <div class="plot" id="climate-monthly"><div class="skeleton"></div></div>
+        </article>
+        <details class="card details-card">
+          <summary>Where do these numbers come from?</summary>
+          <div class="prose" id="climate-sources"></div>
+        </details>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p><strong>HimSim</strong> is free software (AGPL-3.0): <a href="https://github.com/Binamraaa/HimSim" rel="noopener">source
+      code and data credits on GitHub</a>. Every number on this site traces to a cited measurement or a documented
+      calculation: see <a href="#trust">Can we trust it?</a> and <a href="#learn">Learn more</a>.</p>
+    <p class="muted">Teachers: every model setting is in the HimSim lab, which you can run on your own computer from the
+      source code (see the README).</p>
+  </footer>
+  <div class="toast" id="toast" role="status" hidden></div>
+</body>
+</html>

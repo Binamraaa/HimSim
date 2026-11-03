@@ -11,4 +11,7 @@ dependencies:
   - pyproj
   - plotly
   - streamlit
+  - fastapi
+  - uvicorn
+  - markdown
   - pytest
