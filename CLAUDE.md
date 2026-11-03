@@ -27,8 +27,9 @@ python -m streamlit run app/streamlit_app.py       # teacher lab, http://127.0.0
 python scripts/fetch_kyanjin_climate.py            # rebuild the Kyanjin climate CSV (needs internet)
 python scripts/build_space.py                      # Hugging Face Space in dist/hf-space (rebuilds web/data bundle)
 ```
-**Deploying:** the public site is a Hugging Face Space (Docker, Python 3.9, pinned versions in `build_space.py`, which
-must match the local env so the bundle unpickles). Rebuild and re-upload after *any* change to `himsim/` or `web/`:
+**Deploying (paused, see ROADMAP):** the public site is built as a Docker app for a Hugging Face Space (Python 3.9,
+pinned versions in `build_space.py`, which must match the local env so the bundle unpickles). HF Docker Spaces now
+need PRO; the same image runs on any Docker host (Cloud Run, Render) if it listens on the host's port. Rebuild and re-upload after *any* change to `himsim/` or `web/`:
 the bundle's history replay must come from the same code that runs the futures. Upload only after the owner says so.
 The Space gets the bundle (50 m derived grids, allowed by the DEM owner 3 Nov 2026) and station **statistics**, never
 raw DEMs or ICIMOD files. Test the bundle path locally with `HIMSIM_WEB_BUNDLE=... python -m web` from `dist/hf-space`.

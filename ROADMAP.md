@@ -97,9 +97,12 @@ became a debris flood that reached Rasuwagadhi in ~7.5 minutes. That is a **mass
       app stays as the teacher lab. Next: teacher settings and the DEM explainer on the website, Nepali UI.
 - [ ] Multi-page app: Glaciers · Mass flows · Learn · About/cite.
 - [ ] Save, share and re-load scenarios as small JSON files; a gallery of instructive scenarios.
-- [ ] Free hosting on Hugging Face Spaces (owner's choice, 3 Nov 2026). Ready: `scripts/build_space.py` builds a 1 MB
-      Space (Docker) from a deploy bundle (`web/bundle.py`: 50 m grids + station statistics); tested locally without
-      DEMs or station files, identical answers. Still to do: create the Space and upload; later a custom domain.
+- [ ] Hosting, **paused** (3 Nov 2026). Ready: `scripts/build_space.py` builds a 1 MB Docker app from a deploy bundle
+      (`web/bundle.py`: 50 m grids + station statistics); tested locally without DEMs or station files, identical
+      answers; ~225 MB RAM per worker. Hugging Face now requires PRO (~US$9/month) for Docker Spaces (free accounts
+      get Static Spaces only; `Binamrab/HimSim` exists as Static, nothing uploaded). Options: HF PRO (no code change),
+      Google Cloud Run free tier (same image, needs a billing account), Render free (0.1 CPU: too slow for a class),
+      a ~$5–7/month server. Later: a custom domain.
 - [x] Licence: AGPL-3.0-or-later (Oct 2026).
 - [ ] Citation file, contributor guide, docs site.
 
