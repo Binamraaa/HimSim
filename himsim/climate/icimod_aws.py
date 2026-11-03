@@ -21,6 +21,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 from himsim.climate.record import ClimateRecord
@@ -191,10 +192,68 @@ def lapse_rates(low: ClimateRecord, high: ClimateRecord) -> pd.DataFrame:
 
 
 ICE_ALBEDO_LIMIT = 0.4  # days darker than this count as bare ice (the split used by Litt et al. 2019)
+SNOWFALL_RISE_M = 0.02  # the snow surface rose at least this much since the day before: fresh snow fell
+MAX_SNOW_AGE_DAYS = 60  # older snow is left out of the darkening fit (too few days, mostly firn and dust)
+WET_DAY_MM = 1.0  # a "wet day" has at least 1 mm of precipitation (the usual climate-index definition)
 
 
 def _daily_mean(s: pd.Series) -> pd.Series:
     return s.resample("D").mean().where(s.resample("D").count() >= 20)
+
+
+def _days_since_snowfall(surface_distance: pd.Series) -> pd.Series:
+    """Days since the snow surface last rose by ``SNOWFALL_RISE_M`` (0 on the day it did).
+
+    The SR50 sensor measures the distance down to the surface (daily median, days with 12 or more
+    hours), so fresh snow makes the distance *shrink*. A day without a reading makes the age
+    unknown until the next snowfall, because a snowfall might have been missed.
+    """
+    change = surface_distance.diff()
+    age, ages = float("nan"), []
+    for dz in change.to_numpy():
+        if dz <= -SNOWFALL_RISE_M:
+            age = 0.0
+        elif dz != dz:  # NaN: no reading
+            age = float("nan")
+        else:
+            age += 1.0
+        ages.append(age)
+    return pd.Series(ages, index=change.index)
+
+
+def snow_ageing(albedo: pd.Series, surface_distance: pd.Series) -> dict:
+    """How fresh snow darkens with age: fit ``a_old + (a_fresh - a_old) * exp(-age / t)`` to snow days.
+
+    Snow days are days with albedo at or above ``ICE_ALBEDO_LIMIT`` and a known age up to
+    ``MAX_SNOW_AGE_DAYS``. The same form is used for glaciers in the Alps by Oerlemans & Knap (1998,
+    J. Glaciol. 44(147), 231-238); here all three numbers are fitted to the Yala Glacier station.
+    """
+    from scipy.optimize import curve_fit
+
+    age = _days_since_snowfall(surface_distance).reindex(albedo.index)
+    snow = pd.DataFrame({"albedo": albedo, "age": age}).dropna()
+    snow = snow[(snow["albedo"] >= ICE_ALBEDO_LIMIT) & (snow["age"] <= MAX_SNOW_AGE_DAYS)]
+
+    def curve(t, old, fresh, days):
+        return old + (fresh - old) * np.exp(-t / days)
+
+    (old, fresh, days), _ = curve_fit(curve, snow["age"], snow["albedo"], p0=(0.6, 0.8, 10.0), maxfev=20000)
+    return {"albedo_fresh_snow": round(float(fresh), 2), "albedo_old_snow": round(float(old), 2),
+            "snow_ageing_days": round(float(days), 1), "snow_days": len(snow)}
+
+
+def wet_day_share(station: AwsStation = YALA_BASE_CAMP) -> tuple[float, ...]:
+    """Share of days with at least ``WET_DAY_MM`` of precipitation, by calendar month (Jan first).
+
+    Only days in months whose gauge reading and bucket weight agree (``aws_monthly``'s ``p_mm``)
+    are counted, and a day needs 20 of its 24 hours.
+    """
+    hourly = remove_bad_periods(read_aws(station.path), station)
+    trusted = aws_monthly(hourly)["p_mm"].notna()
+    daily = hourly["PVOL"].resample("D").sum(min_count=20).dropna()
+    daily = daily[trusted.reindex(daily.index.to_period("M").to_timestamp()).fillna(False).to_numpy()]
+    wet = (daily >= WET_DAY_MM).groupby(daily.index.month).mean()
+    return tuple(round(float(v), 2) for v in wet.reindex(range(1, 13)))
 
 
 def radiation_inputs(glacier: AwsStation = YALA_GLACIER, off_ice: AwsStation = YALA_BASE_CAMP) -> dict:
@@ -207,6 +266,9 @@ def radiation_inputs(glacier: AwsStation = YALA_GLACIER, off_ice: AwsStation = Y
       the upward-looking sensor) are dropped.
     * ``daily_t_sd``: standard deviation of daily mean air temperature around its own monthly mean,
       by calendar month, at the off-ice station.
+    * ``albedo_fresh_snow`` / ``albedo_old_snow`` / ``snow_ageing_days``: how snow darkens after a
+      snowfall (``snow_ageing``), from the same daily albedo and the glacier station's SR50 sensor.
+    * ``wet_day_share``: how often it rains or snows, by calendar month, at the off-ice station's gauge.
     """
     g = remove_bad_periods(read_aws(glacier.path), glacier)
     sw = _daily_mean(g["KINC"].clip(lower=0.0))
@@ -218,7 +280,12 @@ def radiation_inputs(glacier: AwsStation = YALA_GLACIER, off_ice: AwsStation = Y
 
     t = _daily_mean(remove_bad_periods(read_aws(off_ice.path), off_ice)["TAIR"])
     anomaly = t - t.groupby([t.index.year, t.index.month]).transform("mean")
+    sr50 = g["SR50"].resample("D")
+    ageing = snow_ageing(albedo, sr50.median().where(sr50.count() >= 12))
+    ageing.pop("snow_days")
     return {
+        **ageing,
+        "wet_day_share": wet_day_share(off_ice),
         "sw_in": tuple(round(float(v), 1) for v in monthly.groupby(monthly.index.month).mean()),
         "albedo_ice": round(float(albedo[albedo < ICE_ALBEDO_LIMIT].median()), 2),
         "albedo_snow": round(float(albedo[albedo >= ICE_ALBEDO_LIMIT].median()), 2),

@@ -3,7 +3,8 @@ import pytest
 
 from himsim.constants import WE_TO_ICE
 from himsim.glacier.climate import DAYS_IN_MONTH, ClimateParams, Scenario
-from himsim.glacier.smb import annual_smb, calibrate_temperature, equilibrium_line_altitude, glacier_wide_smb, melt_rates
+from himsim.glacier.smb import (annual_smb, calibrate_temperature, equilibrium_line_altitude, glacier_wide_smb, melt_rates,
+                                snow_albedo)
 
 
 def test_smb_increases_with_elevation():
@@ -72,8 +73,31 @@ def test_sunshine_melt_switches_on_smoothly():
     assert july_ice[0] == pytest.approx(0.0, abs=1e-9)  # far below freezing: no warm days, no melt
     assert (np.diff(july_ice) >= 0).all() and np.abs(np.diff(july_ice)).max() < 1e-3  # no jump at 0 °C
     assert (july_ice >= july_snow).all()  # dark ice absorbs more sunshine than bright snow
-    warm = july_ice[-1] - july_snow[-1]  # all days warm: the difference is the albedo term alone
-    assert warm == pytest.approx(c.srf * c.sw_in[6] * (c.albedo_snow - c.albedo_ice), rel=1e-3)
+    warm = july_ice[-1] - july_snow[-1]  # all days warm and it rains: the difference is the albedo term alone
+    assert warm == pytest.approx(c.srf * c.sw_in[6] * (c.albedo_old_snow - c.albedo_ice), rel=1e-3)
+
+
+def test_snow_albedo_follows_snowfall_frequency():
+    """Snow renewed often stays bright; snow that is never renewed ages to the old-snow albedo."""
+    c = ClimateParams(melt_model="eti")
+    share = np.repeat(np.linspace(0.0, 1.0, 11)[None, :], 12, axis=0)
+    a = snow_albedo(share, c)
+    assert np.allclose(a[:, 0], c.albedo_old_snow)  # all rain: no fresh snow
+    assert (np.diff(a, axis=1) > 0).all() and (a < c.albedo_fresh_snow).all()
+    assert a[6, -1] > a[10, -1]  # July (wet nearly every day) is brighter than dry November
+    rt = c.wet_day_share[6] * c.snow_ageing_days
+    assert a[6, -1] == pytest.approx(c.albedo_old_snow + (c.albedo_fresh_snow - c.albedo_old_snow) * rt / (1 + rt))
+    assert np.allclose(snow_albedo(share, c.with_changes(snow_ageing=False)), c.albedo_snow)
+
+
+def test_snow_ageing_cuts_melt_high_up_and_adds_it_low_down():
+    """In the monsoon, high snow is refreshed almost daily (brighter than average), low snow is rained on."""
+    c = ClimateParams(melt_model="eti")
+    temp = np.full((12, 2), 1.0)
+    snow = np.array([[1.0, 0.0]] * 12)  # left: all snow, right: all rain
+    aged, _ = melt_rates(temp, c, snow)
+    constant, _ = melt_rates(temp, c.with_changes(snow_ageing=False), snow)
+    assert aged[6, 0] < constant[6, 0] and aged[6, 1] > constant[6, 1]
 
 
 def test_sunshine_model_runs_and_differs():

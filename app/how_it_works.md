@@ -98,11 +98,14 @@ gets extra energy straight from the Sun that the air temperature doesn't show.
 > so the remaining gap is a clue that the melt rule still misses something.
 
 > **Experiment: add sunshine.** Teachers can switch on a melt rule that also counts the sunshine the surface absorbs,
-> measured by the weather station on Yala Glacier: dark ice soaks up about 77 % of it, snow only about 30 %.
-> With the factors scientists measured on Yala (Litt et al. 2019), the tongue thins more realistically, but melt
-> grows even *more* slowly toward the snout (0.56). Why? In the monsoon every day near the snowline is above
-> freezing, so the sunshine term is the same up and down the slope. Real science often goes like this: a more
-> detailed model doesn't automatically fit better, and the reasons why are where we learn.
+> measured by the weather station on Yala Glacier: dark ice soaks up about 77 % of it, snow only 21–36 %.
+> Snow gets darker as it ages: the station saw fresh snow reflect 79 % of the sunlight, dropping towards 64 % within
+> a few days. High on the glacier, monsoon snow falls almost every day, so the surface stays bright; lower down it
+> rains, so the old snow darkens. With the factors scientists measured on Yala (Litt et al. 2019), the tongue thins
+> more realistically, but melt grows even *more* slowly toward the snout (0.59). Why? In the monsoon every day near
+> the snowline is above freezing, and fresh snow falls just as often a little above it as a little below it, so the
+> sunshine term is almost the same up and down the slope. Real science often goes like this: a more detailed model
+> doesn't automatically fit better, and the reasons why are where we learn.
 
 ### 5 · What the model leaves out
 

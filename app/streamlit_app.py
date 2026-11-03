@@ -148,8 +148,9 @@ with st.sidebar:
                    "Nepal by Shea et al. (2015).")
     st.toggle("Add sunshine to the melt rule", key="t_sunshine",
               help="Enhanced temperature index: melt also grows with the sunshine the surface absorbs, measured by "
-                   "the ICIMOD Yala Glacier weather station (dark ice absorbs ~77 %, snow ~30 %). Factors from Litt et al. "
-                   "(2019). When on, the two melt-per-degree sliders above are not used.")
+                   "the ICIMOD Yala Glacier weather station (dark ice absorbs ~77 %, snow 21–36 %: fresh snow is "
+                   "brightest and darkens within days). Factors from Litt et al. (2019). When on, the two "
+                   "melt-per-degree sliders above are not used.")
     st.slider("Ice softness A (log₁₀ Pa⁻³ s⁻¹)", -25.0, -23.0, step=0.05, key="t_log_a",
               help="Glen's flow-law rate factor. −23.6 is ice at 0 °C; colder ice is stiffer and flows slower.")
     st.toggle("Ice slides on its bed", key="t_sliding",

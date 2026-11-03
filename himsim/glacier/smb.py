@@ -16,6 +16,9 @@ Melt rate per day, two rules (``ClimateParams.melt_model``):
 For "eti" the daily temperatures of a month are taken as normally distributed around the
 monthly mean with the measured day-to-day spread, so the sunshine term switches on gradually
 as more days of the month rise above freezing, instead of jumping when the monthly mean does.
+The snow's albedo depends on how often fresh snow falls (``snow_albedo``): high up, where most
+of the frequent monsoon precipitation is snow, the surface stays bright; lower down, where it
+rains, the snow ages and darkens.
 
 Snow left at the end of the year is the year's accumulation; older firn is treated like ice.
 
@@ -45,7 +48,7 @@ def annual_smb(z: np.ndarray, climate: ClimateParams, temp_delta: float = 0.0, p
 
     snow_fraction = np.clip((climate.t_rain - temp) / (climate.t_rain - climate.t_snow), 0.0, 1.0)
     snowfall = precip * snow_fraction
-    rate_snow, rate_ice = melt_rates(temp, climate)  # m w.e. per day, shape (12, *z.shape)
+    rate_snow, rate_ice = melt_rates(temp, climate, snow_fraction)  # m w.e. per day, shape (12, *z.shape)
 
     snowpack = np.zeros(z.shape)
     melt = np.zeros(z.shape)
@@ -60,8 +63,28 @@ def annual_smb(z: np.ndarray, climate: ClimateParams, temp_delta: float = 0.0, p
     return (snowfall.sum(axis=0) - melt) * WE_TO_ICE
 
 
-def melt_rates(temp: np.ndarray, climate: ClimateParams) -> tuple[np.ndarray, np.ndarray]:
-    """Melt per day (m w.e.) on snow and on bare ice for monthly mean temperatures ``temp`` (12, ...)."""
+def snow_albedo(snow_fraction: np.ndarray, climate: ClimateParams) -> np.ndarray:
+    """Average albedo of the snow surface in each month (12, ...), from how often fresh snow falls.
+
+    Fresh snow falls on a share ``wet_day_share x snow_fraction`` of the days (rate ``r`` per day).
+    Between snowfalls the albedo decays as ``old + (fresh - old) exp(-age / t)``. If snowfalls come at
+    random, the snow's age is exponentially distributed with mean ``1 / r``, and the average of
+    ``exp(-age / t)`` is ``r t / (1 + r t)``. Frequent snow stays near ``fresh``; rare snow tends to ``old``.
+    """
+    if not climate.snow_ageing:
+        return np.full(np.shape(snow_fraction), climate.albedo_snow)
+    wet = np.asarray(climate.wet_day_share, dtype=np.float64).reshape((12,) + (1,) * (np.ndim(snow_fraction) - 1))
+    rt = wet * snow_fraction * climate.snow_ageing_days
+    return climate.albedo_old_snow + (climate.albedo_fresh_snow - climate.albedo_old_snow) * rt / (1.0 + rt)
+
+
+def melt_rates(temp: np.ndarray, climate: ClimateParams,
+               snow_fraction: np.ndarray | None = None) -> tuple[np.ndarray, np.ndarray]:
+    """Melt per day (m w.e.) on snow and on bare ice for monthly mean temperatures ``temp`` (12, ...).
+
+    ``snow_fraction`` (same shape) sets the snow albedo when ``climate.snow_ageing`` is on ("eti" only);
+    if it is not given it is worked out from ``temp``.
+    """
     excess = temp - climate.t_melt
     if climate.melt_model == "ti":
         warm = np.maximum(excess, 0.0)
@@ -74,7 +97,9 @@ def melt_rates(temp: np.ndarray, climate: ClimateParams) -> tuple[np.ndarray, np
     warm_days = ndtr(x)  # share of days above the melt threshold
     warm = sd * np.exp(-0.5 * x * x) / np.sqrt(2.0 * np.pi) + excess * warm_days  # mean of max(T_day - T_melt, 0)
     sun = climate.srf * sw * warm_days
-    return (climate.tf_eti * warm + sun * (1.0 - climate.albedo_snow),
+    if snow_fraction is None:
+        snow_fraction = np.clip((climate.t_rain - temp) / (climate.t_rain - climate.t_snow), 0.0, 1.0)
+    return (climate.tf_eti * warm + sun * (1.0 - snow_albedo(snow_fraction, climate)),
             climate.tf_eti * warm + sun * (1.0 - climate.albedo_ice))
 
 

@@ -52,8 +52,8 @@ class ClimateParams:
     # tf_eti and srf: Litt et al. (2019), Sci. Rep. 9, 5264, doi:10.1038/s41598-019-41657-5, Table S4, Yala Glacier
     # 5330 m, monsoon 2014 and 2016 (both years gave 2.0 mm w.e. °C-1 d-1 and 0.1 mm w.e. W-1 m2 d-1, printed to one
     # decimal). Litt et al. calibrated them with air temperature measured over the ice. On Yala (50 m, standard
-    # settings) "eti" flattens the SMB gradient to 0.56 (vs 0.70 "ti"; stakes 1.04), so "ti" stays the default; with
-    # their whole-year SRF of 0.2 it reaches 0.83. See CLAUDE.md, "Reference numbers".
+    # settings) "eti" flattens the SMB gradient to 0.59 with snow ageing (0.56 without; 0.70 "ti"; stakes 1.04), so
+    # "ti" stays the default. See CLAUDE.md, "Reference numbers".
     melt_model: str = "ti"
     tf_eti: float = 0.0020  # m w.e. per °C per day
     srf: float = 0.0001  # m w.e. per (W m-2) per day
@@ -61,7 +61,18 @@ class ClimateParams:
     # monthly mean incoming shortwave radiation (Jan first), and median daily albedo of bare ice (< 0.4) and snow.
     sw_in: tuple[float, ...] = (219.1, 249.9, 307.3, 301.2, 284.1, 236.2, 151.9, 155.2, 128.0, 194.9, 237.8, 207.2)
     albedo_ice: float = 0.23
-    albedo_snow: float = 0.70
+    albedo_snow: float = 0.70  # used only when snow_ageing is off
+    # Snow ageing ("eti" only): fresh snow is bright and darkens within days, so snow that is renewed often stays
+    # brighter. Fitted at the Yala Glacier AWS, 2016-2019 (``icimod_aws.snow_ageing``): albedo falls from
+    # albedo_fresh_snow towards albedo_old_snow with an e-folding time of snow_ageing_days. wet_day_share (Jan first)
+    # is the share of days with >= 1 mm of precipitation at the Yala Base Camp gauge (``icimod_aws.wet_day_share``).
+    # Snowfalls are taken to arrive at random on those wet days, as snow with the month's snow fraction. The
+    # exponential form follows Oerlemans & Knap (1998), J. Glaciol. 44(147), 231-238; the numbers are Yala's own.
+    snow_ageing: bool = True
+    albedo_fresh_snow: float = 0.79
+    albedo_old_snow: float = 0.64
+    snow_ageing_days: float = 2.8
+    wet_day_share: tuple[float, ...] = (0.12, 0.27, 0.32, 0.43, 0.43, 0.54, 0.97, 0.9, 0.54, 0.03, 0.02, 0.03)
     # Day-to-day spread (standard deviation, °C) of daily mean air temperature around its monthly mean, at the
     # ICIMOD Yala Base Camp AWS (5090 m, off the ice), 2012-2019. Used to estimate how many days of a month melt.
     daily_t_sd: tuple[float, ...] = (3.28, 2.62, 2.97, 2.16, 1.94, 1.19, 0.68, 0.75, 1.17, 2.28, 2.0, 3.26)
