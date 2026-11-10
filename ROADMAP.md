@@ -60,6 +60,18 @@ the outcome with the science explained. Learning comes first, and **the data alw
       terrain from Copernicus GLO-30, calibration target from Hugonnet et al. (2021) per-glacier geodetic mass balance.
       If the GLIMS WFS is down (502 on 2 Nov 2026), OGGM mirrors RGI 6.2 (`cluster.klima.uni-bremen.de/~oggm/rgi/`)
       and the Hugonnet per-glacier rates (`.../~oggm/geodetic_ref_mb/`).
+- [x] Sites can use open DEMs instead of local survey files (`dems={2000: "srtm", 2013: "copernicus"}`);
+      SRTM 1″ reader (Feb 2000, EGM96 → EGM2008). `scripts/fetch_rgi_outline.py` saves any RGI 6.0 outline in UTM.
+- [x] Rikha Samba domain (Nov 2026): RGI60-15.04847 outline on the SRTM 2000 surface reproduces RGI area 6.50 km²
+      and 5370–6502 m (RGI 5380–6513). On rock SRTM sits ~4 m below Copernicus; SRTM's C-band radar also sinks into
+      snow and firn, so SRTM − Copernicus is not usable as a thinning check without corrections.
+- [ ] Rikha Samba climate: a cited precipitation reference for the Mustang rain shadow and a temperature record
+      (ICIMOD AWS RDS.26858); then calibration to Hugonnet 2000–2020 and the reality check (stakes, GPR 2015).
+      RDS.26858 download (10 Nov 2026) holds only the station sheet, no data file (`info.xml` lists one file).
+      Sheet + metadata: 28.7991 N 83.51449 E (no elevation given; Copernicus 5319 m, rock, ~1 km E of the glacier,
+      inside the model domain), record 2012-10-14 → 2014-12-31, CC BY 4.0, contact Joseph Shea (ICIMOD). T/RH,
+      wind and pyranometer Oct 2012 – May 2015; "errors in pluvio precipitation record (cause unknown)", bucket
+      content unusable for hourly totals; snow depth "treated cautiously". Hourly data must be requested from ICIMOD.
 - [ ] Candidate glaciers with field data: Rikha Samba, Mera, Pokalde, AX010, Changri Nup, Lirung, Langtang.
       Debris-covered (Lirung, Langtang) and lake-calving glaciers need new physics; clean-ice benchmark glaciers first.
       Feasibility check (2 Nov 2026):

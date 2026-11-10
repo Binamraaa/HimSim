@@ -17,7 +17,7 @@ import numpy as np
 from rasterio.features import rasterize
 from scipy.ndimage import label
 
-from himsim.dem import geoid_undulation, read_copernicus
+from himsim.dem import geoid_undulation, read_copernicus, read_srtm
 from himsim.grid import Grid, coverage_on_grid, fill_gaps, read_on_grid
 from himsim.store import cached
 from himsim.glacier.observations import YALA_MEASUREMENTS, YALA_YEARLY_MASS_BALANCE, Measurement
@@ -26,6 +26,8 @@ from himsim.glacier.thickness import initial_thickness
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DATA_ROOT = Path(os.environ.get("HIMSIM_DATA", REPO_ROOT / "DEM_and_ortho" / "DEM_and_ortho"))
 OUTLINE_DIR = Path(__file__).resolve().parent / "outlines"  # small GeoJSONs, versioned with the code
+# Open global DEMs a site can name instead of a local file (downloaded on first use, heights above EGM2008).
+OPEN_DEM_READERS = {"srtm": read_srtm, "copernicus": read_copernicus}
 
 
 @dataclass(frozen=True)
@@ -33,12 +35,12 @@ class GlacierSite:
     name: str
     description: str
     bounds: tuple[float, float, float, float]  # xmin, ymin, xmax, ymax in ``crs``
-    dems: dict[int, str]  # year -> DEM filename in DATA_ROOT
+    dems: dict[int, str]  # year -> DEM filename in DATA_ROOT, or an open DEM key from ``OPEN_DEM_READERS``
     start_year: int  # the DEM whose surface is the initial ice surface
     terrain_years: tuple[int, ...]  # DEMs (in priority order) used for ice-free terrain around the glacier
     crs: str = "EPSG:32645"
     outline_geojson: str | None = None  # glacier outline (Polygon in ``crs``); falls back to the start DEM footprint
-    vertical_datum: str = "geoid"  # "geoid" (heights above sea level) or "ellipsoid" (converted on load)
+    vertical_datum: str = "geoid"  # of the local DEM files: "geoid" (above sea level) or "ellipsoid" (converted)
     geoid_fallback: float | None = None  # EGM2008 undulation (m) to use if the PROJ geoid grid is unavailable
     measurements: tuple[Measurement, ...] = ()  # independent field data for the reality check
     yearly_mass_balance: tuple[tuple[int, tuple[float, float]], ...] = ()  # (year, (m w.e., ±)) from stakes
@@ -48,6 +50,9 @@ class GlacierSite:
 
     def grid(self, dx: float) -> Grid:
         return Grid.from_bounds(*self.bounds, dx=dx, crs=self.crs)
+
+    def is_open(self, year: int) -> bool:
+        return self.dems[year] in OPEN_DEM_READERS
 
 
 YALA = GlacierSite(
@@ -72,7 +77,22 @@ YALA = GlacierSite(
     yearly_mass_balance=tuple(YALA_YEARLY_MASS_BALANCE.items()),
 )
 
-SITES: dict[str, GlacierSite] = {YALA.name: YALA}
+RIKHA_SAMBA = GlacierSite(
+    name="Rikha Samba",
+    description="Rikha Samba Glacier, Hidden Valley, Mustang district (~28.82 N, 83.49 E). ICIMOD benchmark glacier.",
+    # >= 1.9 km beyond the outline on every side (outline x 740962-744599, y 3188454-3193519).
+    bounds=(739000.0, 3186500.0, 746500.0, 3195500.0),
+    # No survey DEMs: the start surface is SRTM (Shuttle radar, 11-22 Feb 2000), the epoch of the RGI outline
+    # (29 Sep 2001) and of the Hugonnet et al. (2021) 2000-2020 mass balance. Copernicus GLO-30 (TanDEM-X,
+    # acquired 2011-2015, no per-cell dates) gives the terrain; 2013 is only the middle of that window.
+    dems={2000: "srtm", 2013: "copernicus"},
+    start_year=2000,
+    terrain_years=(2013,),
+    crs="EPSG:32644",
+    outline_geojson=str(OUTLINE_DIR / "rikha_samba_rgi60.geojson"),  # RGI60-15.04847, 6.504 km2
+)
+
+SITES: dict[str, GlacierSite] = {YALA.name: YALA, RIKHA_SAMBA.name: RIKHA_SAMBA}
 
 
 @dataclass
@@ -123,15 +143,23 @@ def load_site(site: GlacierSite, dx: float = 50.0, thickness_method: str = "scal
     """
     grid = site.grid(dx)
     notes = []
-    observed = {year: read_on_grid(site.path(year), grid) for year in site.dems}
-    if site.vertical_datum == "ellipsoid":
+    files = [year for year in site.dems if not site.is_open(year)]
+    observed = {year: read_on_grid(site.path(year), grid) for year in files}
+    if files and site.vertical_datum == "ellipsoid":
         n = geoid_undulation(grid, site.geoid_fallback)
         observed = {year: z - n for year, z in observed.items()}
         notes.append(f"Site DEMs converted from WGS84 ellipsoid to EGM2008 heights (geoid {n.mean():+.1f} m).")
+    for year in site.dems:
+        if site.is_open(year):  # already above EGM2008
+            observed[year] = OPEN_DEM_READERS[site.dems[year]](grid)
+            notes.append(f"{year} surface: open DEM '{site.dems[year]}'.")
+    observed = dict(sorted(observed.items()))
 
     if site.outline_geojson:
         mask = _outline_mask(site, grid)
         notes.append(f"Glacier outline: {Path(site.outline_geojson).stem}.")
+    elif site.is_open(site.start_year):
+        raise ValueError(f"{site.name}: a site starting from an open DEM needs an outline")
     else:
         mask = coverage_on_grid(site.path(site.start_year), grid) >= 0.5
         notes.append(f"Glacier outline: footprint of the {site.start_year} DEM.")

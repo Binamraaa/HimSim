@@ -18,10 +18,12 @@ The owner is also learning the physics: explain *why* when changing physics or n
 - The Rasuwa 2026 debris flood is a separate future case study (ROADMAP Phase 3). Out of scope for now.
 
 ## Commands
-Python env: Anaconda **base** (`C:\Users\ALiEN\anaconda3\python.exe`, py3.9). Keep code 3.9-compatible
-(`from __future__ import annotations`; no `match`).
+Python env: conda env **himsim** (Miniforge, `C:\Users\ALiEN\miniforge3\envs\himsim\python.exe`, py3.9; science
+packages from conda-forge at the `build_space.py` pins, web packages via pip). Run through
+`conda run -n himsim --no-capture-output python ...` (or activate it) so GDAL/PROJ data paths are set.
+Keep code 3.9-compatible (`from __future__ import annotations`; no `match`).
 ```bash
-python -m pytest                                   # 58 tests, ~90 s once cached; must stay green
+python -m pytest                                   # 60 tests, ~40 s once cached; must stay green
 python -m web                                      # student website, http://127.0.0.1:8600 (FastAPI + web/static)
 python -m streamlit run app/streamlit_app.py       # teacher lab, http://127.0.0.1:8501 (not localhost: a cached app lives there)
 python scripts/fetch_kyanjin_climate.py            # rebuild the Kyanjin climate CSV (needs internet)

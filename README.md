@@ -72,7 +72,11 @@ share its source under the same licence. The data listed below keep their own li
 ## Data credits
 
 - Yala DEMs and orthophotos 1981/2007/2015: bias-corrected and co-registered (provenance to be documented).
-- Glacier outline: Randolph Glacier Inventory 6.0, RGI60-15.03954 (RGI Consortium 2017), via GLIMS.
+- Glacier outlines: Randolph Glacier Inventory 6.0, RGI60-15.03954 (Yala) and RGI60-15.04847 (Rikha Samba)
+  (RGI Consortium 2017, doi:10.7265/N5-RGI-60), via GLIMS.
+- Open DEMs: Copernicus GLO-30 (© DLR e.V. 2010–2014 and © Airbus 2014–2018, provided under COPERNICUS by the
+  European Union and ESA); SRTMGL1 v3 (NASA/USGS; SRTM data courtesy of the U.S. Geological Survey), via the
+  Mapzen/Tilezen terrain tiles on AWS Open Data.
 - Field measurements: Sugiyama et al. (2013), doi:10.3189/2013AoG64A111 (radar thickness, volume);
   Stumm et al. (2021), doi:10.5194/essd-13-3791-2021 (ICIMOD stake mass balance 2011–2017).
 - Climate: ERA5 (Hersbach et al. 2020) and ERA5-Land (Muñoz-Sabater et al. 2021), Copernicus Climate Change Service,

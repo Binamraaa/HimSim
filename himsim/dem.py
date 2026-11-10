@@ -88,6 +88,63 @@ def read_copernicus(grid: Grid, use_cache: bool = True) -> np.ndarray:
     return out
 
 
+def srtm_tile_url(lat_floor: int, lon_floor: int) -> str:
+    ns = f"N{lat_floor:02d}" if lat_floor >= 0 else f"S{-lat_floor:02d}"
+    ew = f"E{lon_floor:03d}" if lon_floor >= 0 else f"W{-lon_floor:03d}"
+    return f"https://elevation-tiles-prod.s3.amazonaws.com/skadi/{ns}/{ns}{ew}.hgt.gz"
+
+
+def read_srtm(grid: Grid, use_cache: bool = True) -> np.ndarray:
+    """SRTM 1″ heights on ``grid``, in metres above the **EGM2008** geoid. Needs internet the first time.
+
+    Source: Mapzen/Tilezen terrain tiles ("Skadi" format, AWS open data, no login), which repackage NASA SRTMGL1 v3:
+    radar heights from the Shuttle mission of **11–22 Feb 2000**. NASA filled SRTM's gaps (steep shadowed slopes)
+    with other DEMs, mainly ASTER GDEM, so filled cells are not from 2000. The C-band radar also sinks a few metres
+    into dry snow and firn. Tiles give heights above EGM96; converted here to EGM2008 like every other HimSim height.
+    Credit: SRTM data courtesy of the U.S. Geological Survey.
+    """
+    import gzip
+    import shutil
+    import urllib.request
+
+    cache = CACHE_DIR / f"srtm_{grid.crs.replace(':', '')}_{grid.xmin:.0f}_{grid.ymax:.0f}_{grid.dx:g}_{grid.nx}x{grid.ny}.npy"
+    if use_cache and cache.exists():
+        return np.load(cache)
+    lon, lat = _grid_lonlat(grid)
+    out = np.full(grid.shape, np.nan)
+    tiles = CACHE_DIR / "srtm_tiles"
+    tiles.mkdir(parents=True, exist_ok=True)
+    for la in range(math.floor(lat.min()), math.floor(lat.max()) + 1):
+        for lo in range(math.floor(lon.min()), math.floor(lon.max()) + 1):
+            url = srtm_tile_url(la, lo)
+            hgt = tiles / Path(url).name[:-3]  # GDAL reads .hgt by its N28E083-style name
+            if not hgt.exists():
+                tmp = hgt.with_suffix(".tmp")
+                with urllib.request.urlopen(url, timeout=300) as r, open(tmp, "wb") as f:
+                    shutil.copyfileobj(gzip.GzipFile(fileobj=r), f)
+                tmp.replace(hgt)
+            tile = read_on_grid(hgt, grid, Resampling.bilinear)
+            out = np.where(np.isfinite(out), out, tile)
+    out = out + egm96_to_egm2008(grid)
+    if use_cache:
+        np.save(cache, out)
+    return out
+
+
+def egm96_to_egm2008(grid: Grid) -> np.ndarray:
+    """Metres to add to an EGM96 height to get the EGM2008 height of the same point (PROJ geoid grids)."""
+    import pyproj
+
+    pyproj.network.set_network_enabled(True)
+    lon, lat = _grid_lonlat(grid)
+    _, _, h08 = Transformer.from_crs("EPSG:4326+5773", "EPSG:4326+3855", always_xy=True).transform(
+        lon, lat, np.zeros_like(lon))
+    h08 = np.asarray(h08, dtype=float)
+    if not np.isfinite(h08).all() or np.abs(h08).max() == 0.0:  # PROJ silently returns 0 without its grids
+        raise RuntimeError("EGM96/EGM2008 geoid grids unavailable (PROJ network blocked?)")
+    return h08
+
+
 def geoid_undulation(grid: Grid, fallback: float | None = None) -> np.ndarray:
     """EGM2008 geoid height N above the WGS84 ellipsoid (m) at every grid cell.
 
