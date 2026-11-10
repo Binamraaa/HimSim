@@ -289,6 +289,14 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.12); }
   border-radius: 12px; box-shadow: var(--shadow-lg); font-size: .9rem; z-index: 60; max-width: calc(100vw - 32px);
 }
 
+/* static site: model starting in the browser (transport.js) */
+.loading-banner {
+  position: fixed; left: 50%; top: 72px; transform: translateX(-50%); z-index: 70; max-width: calc(100vw - 32px);
+  background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-left: 4px solid var(--primary);
+  border-radius: 12px; box-shadow: var(--shadow-lg); padding: 10px 16px; font-size: .9rem;
+}
+.loading-banner[hidden] { display: none; }
+
 /* ---------- guide: top-bar menu */
 .guide-menu-wrap { position: relative; flex: none; }
 .guide-toggle {

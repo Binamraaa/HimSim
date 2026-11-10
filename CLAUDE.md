@@ -23,12 +23,21 @@ packages from conda-forge at the `build_space.py` pins, web packages via pip). R
 `conda run -n himsim --no-capture-output python ...` (or activate it) so GDAL/PROJ data paths are set.
 Keep code 3.9-compatible (`from __future__ import annotations`; no `match`).
 ```bash
-python -m pytest                                   # 60 tests, ~40 s once cached; must stay green
+python -m pytest                                   # 64 tests, ~40 s once cached; must stay green
 python -m web                                      # student website, http://127.0.0.1:8600 (FastAPI + web/static)
 python -m streamlit run app/streamlit_app.py       # teacher lab, http://127.0.0.1:8501 (not localhost: a cached app lives there)
 python scripts/fetch_kyanjin_climate.py            # rebuild the Kyanjin climate CSV (needs internet)
 python scripts/build_space.py                      # Hugging Face Space in dist/hf-space (rebuilds web/data bundle)
+python scripts/build_static.py                     # static site in dist/static-site: model runs in the browser
+python -m http.server 8700 -d dist/static-site     # try the static site at http://127.0.0.1:8700
 ```
+**Static site (the free hosting route, Nov 2026):** `build_static.py` copies `web/static`, sets
+`window.HIMSIM_STATIC`, and ships himsim + `web/core.py` + `web/browser.py` + the bundle as a zip plus a slimmed
+plotly wheel. `pyworker.js` (a *module* worker: classic `importScripts` of the CDN fails in Chrome) loads Pyodide
+314.0.6 (Python 3.14, numpy 2.4, pandas 3.0, scipy 1.18) from jsDelivr. First visit 42 MB (scipy 13.9, plotly
+12.1), ready in ~19 s; runs ~0.6–1.3 s. Same answers as the server (`test_in_browser_door_matches_the_server`).
+Check it in a real browser after front-end changes (headless Chrome via puppeteer-core works here). Any static host
+serves `dist/static-site` (GitHub Pages: keep paths relative). Rebuild after any change to `himsim/` or `web/`.
 **Deploying (paused, see ROADMAP):** the public site is built as a Docker app for a Hugging Face Space (Python 3.9,
 pinned versions in `build_space.py`, which must match the local env so the bundle unpickles). HF Docker Spaces now
 need PRO; the same image runs on any Docker host (Cloud Run, Render) if it listens on the host's port. Rebuild and re-upload after *any* change to `himsim/` or `web/`:
@@ -45,7 +54,8 @@ Network in this environment occasionally drops for a minute; retry before assumi
 ## Layout
 ```
 himsim/constants.py           physical constants (SI; time in YEARS)
-himsim/grid.py                Grid (north-up, UTM 45N), read_on_grid / coverage_on_grid / fill_gaps
+himsim/grid.py                Grid (north-up, UTM 45N), read_on_grid / coverage_on_grid / fill_gaps (rasterio
+                              and pyproj are imported inside functions only, so the model runs without them)
 himsim/dem.py                 OPEN_DEMS catalogue, Copernicus GLO-30 reader (+cache), EGM2008 geoid conversion
 himsim/store.py               disk cache for prepared sites / history runs (invalidated by code changes)
 himsim/climate/record.py      ClimateRecord: monthly T/P series, climatology, anomalies, trend, precip rescaling,
@@ -68,13 +78,18 @@ himsim/glacier/observations.py  Measurement (cited field data + grading rule), Y
 himsim/glacier/history.py     calibrate(), historical_scenario(), run_history()/prepare_history() -> HistoryRun
 himsim/glacier/validation.py  geodetic_rate, band_comparison, reality_check (model vs every Measurement), yearly_mass_balance
 himsim/viz.py                 all Plotly figures + colour roles
-web/api.py                      student website API (FastAPI). No physics: calls himsim with standard settings and
-                                returns numbers, student text and viz.py figures as JSON. Mirrors the lab's wording.
-web/static/                     index.html, styles.css, app.js: plain JS, no build step; Plotly.js served from the
-                                installed plotly package (/vendor/plotly.min.js), so it works offline. "Clean glacier"
+web/core.py                     website logic, no server: calls himsim with standard settings and returns numbers,
+                                student text and viz.py figures as JSON. Mirrors the lab's wording. Must not import
+                                FastAPI, pydantic, rasterio or pyproj (it runs in Pyodide; a test blocks them).
+web/api.py                      FastAPI server: routes + input validation only, every answer from web/core.py
+web/browser.py                  the same /api/... paths for the in-browser site (pyworker.js calls handle())
+web/static/                     index.html, styles.css, app.js: plain JS, no build step; transport.js sends /api calls
+                                to the server or to pyworker.js (Pyodide). Plotly.js from the installed plotly package
+                                (vendor/plotly.min.js, relative path), so it works offline. "Clean glacier"
                                 palette (bg #F6F8FB, blue #1F5FA8, orange #E07A3F for loss, slate #1E2A38).
 web/bundle.py                   deploy bundle (Model pickled + gzip): `python -m web.bundle`; `HIMSIM_WEB_BUNDLE` loads it
 scripts/build_space.py          assembles dist/hf-space (code + bundle + Dockerfile + Space card)
+scripts/build_static.py         assembles dist/static-site (no server; model runs in the browser)
 web/static/guide.js             student guide: hover tips (GUIDE, one entry per `data-guide` hook in index.html), the
                                 first-visit welcome tour and 12 "Try this" missions that complete from what students do.
                                 Numbers only from API data (app.js sends `himsim:*` events); progress in localStorage.

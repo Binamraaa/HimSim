@@ -30,7 +30,7 @@ log = logging.getLogger("himsim.web")
 
 
 def save(model, path: Path = DEFAULT_PATH) -> Path:
-    """Write a ``web.api.Model`` to ``path`` (gzip-compressed pickle)."""
+    """Write a ``web.core.Model`` to ``path`` (gzip-compressed pickle)."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = {"format": FORMAT_VERSION, "code": code_fingerprint(), "model": model}
@@ -59,7 +59,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Build the HimSim website's deploy bundle (needs the Yala DEMs).")
     parser.add_argument("--out", type=Path, default=DEFAULT_PATH)
     args = parser.parse_args()
-    from web.api import build_model  # needs the DEMs; the station files are optional
+    from web.core import build_model  # needs the DEMs; the station files are optional
 
     model = build_model(with_station_summary=True)
     path = save(model, args.out)

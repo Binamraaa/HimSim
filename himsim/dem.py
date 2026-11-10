@@ -15,8 +15,6 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
-from pyproj import Transformer
-from rasterio.warp import Resampling
 
 from himsim.grid import Grid, read_on_grid
 
@@ -58,6 +56,12 @@ OPEN_DEMS: tuple[OpenDem, ...] = (
 )
 
 
+def _bilinear():
+    from rasterio.warp import Resampling
+
+    return Resampling.bilinear
+
+
 def copernicus_tile_url(lat_floor: int, lon_floor: int) -> str:
     ns = f"N{lat_floor:02d}" if lat_floor >= 0 else f"S{-lat_floor:02d}"
     ew = f"E{lon_floor:03d}" if lon_floor >= 0 else f"W{-lon_floor:03d}"
@@ -66,6 +70,8 @@ def copernicus_tile_url(lat_floor: int, lon_floor: int) -> str:
 
 
 def _grid_lonlat(grid: Grid) -> tuple[np.ndarray, np.ndarray]:
+    from pyproj import Transformer
+
     xx, yy = np.meshgrid(grid.x, grid.y)
     lon, lat = Transformer.from_crs(grid.crs, "EPSG:4326", always_xy=True).transform(xx, yy)
     return lon, lat
@@ -80,7 +86,7 @@ def read_copernicus(grid: Grid, use_cache: bool = True) -> np.ndarray:
     out = np.full(grid.shape, np.nan)
     for la in range(math.floor(lat.min()), math.floor(lat.max()) + 1):
         for lo in range(math.floor(lon.min()), math.floor(lon.max()) + 1):
-            tile = read_on_grid(copernicus_tile_url(la, lo), grid, Resampling.bilinear)
+            tile = read_on_grid(copernicus_tile_url(la, lo), grid, _bilinear())
             out = np.where(np.isfinite(out), out, tile)
     if use_cache:
         CACHE_DIR.mkdir(parents=True, exist_ok=True)
@@ -123,7 +129,7 @@ def read_srtm(grid: Grid, use_cache: bool = True) -> np.ndarray:
                 with urllib.request.urlopen(url, timeout=300) as r, open(tmp, "wb") as f:
                     shutil.copyfileobj(gzip.GzipFile(fileobj=r), f)
                 tmp.replace(hgt)
-            tile = read_on_grid(hgt, grid, Resampling.bilinear)
+            tile = read_on_grid(hgt, grid, _bilinear())
             out = np.where(np.isfinite(out), out, tile)
     out = out + egm96_to_egm2008(grid)
     if use_cache:
@@ -134,6 +140,7 @@ def read_srtm(grid: Grid, use_cache: bool = True) -> np.ndarray:
 def egm96_to_egm2008(grid: Grid) -> np.ndarray:
     """Metres to add to an EGM96 height to get the EGM2008 height of the same point (PROJ geoid grids)."""
     import pyproj
+    from pyproj import Transformer
 
     pyproj.network.set_network_enabled(True)
     lon, lat = _grid_lonlat(grid)
@@ -153,6 +160,7 @@ def geoid_undulation(grid: Grid, fallback: float | None = None) -> np.ndarray:
     ``fallback`` (with a warning) instead of returning a wrong answer.
     """
     import pyproj
+    from pyproj import Transformer
 
     pyproj.network.set_network_enabled(True)
     lon, lat = _grid_lonlat(grid)

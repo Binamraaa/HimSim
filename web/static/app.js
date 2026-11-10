@@ -1,4 +1,5 @@
-/* HimSim student site. Plain JavaScript, no build step. All numbers and charts come from the API (web/api.py). */
+/* HimSim student site. Plain JavaScript, no build step. All numbers and charts come from web/core.py, via the server
+   (web/api.py) or in the browser (pyworker.js); transport.js picks. */
 (() => {
   "use strict";
 
@@ -20,12 +21,9 @@
   const emit = (name, detail) => document.dispatchEvent(new CustomEvent(`himsim:${name}`, { detail }));
   const signed = (v, digits, unit) => `${v > 0 ? "+" : v < 0 ? "−" : "±"}${Math.abs(v).toFixed(digits)}${unit}`;
 
-  async function api(path, options) {
-    const res = await fetch(path, options);
-    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-    return res.json();
-  }
-  const post = (path, body) => api(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  // transport.js: a web request to the server, or the model running in this browser on the static site
+  const api = (path, options) => window.himsim.request(path, options);
+  const post = (path, body) => window.himsim.post(path, body);
 
   let toastTimer;
   function toast(text) {
@@ -37,7 +35,7 @@
   }
   const failed = (what) => (err) => {
     console.error(what, err);
-    toast(`Couldn't load ${what}. Is the HimSim server still running?`);
+    toast(window.himsim.isStatic() ? `Couldn't load ${what}. Try reloading the page.` : `Couldn't load ${what}. Is the HimSim server still running?`);
   };
 
   const plotlyReady = new Promise((resolve) => {

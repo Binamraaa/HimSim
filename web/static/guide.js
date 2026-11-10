@@ -26,11 +26,7 @@
   };
   const KEY = { tour: "himsim.tour.seen", tips: "himsim.tips", missions: "himsim.missions" };
 
-  async function post(path, body) {
-    const res = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-    return res.json();
-  }
+  const post = (path, body) => window.himsim.post(path, body);  // transport.js
 
   // ------------------------------------------------------------ what the page currently shows (from app.js events)
   const ctx = { page: "meet", overview: null, future: null, view: "compare", reality: null };

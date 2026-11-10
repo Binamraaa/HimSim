@@ -115,6 +115,14 @@ became a debris flood that reached Rasuwagadhi in ~7.5 minutes. That is a **mass
       get Static Spaces only; `Binamrab/HimSim` exists as Static, nothing uploaded). Options: HF PRO (no code change),
       Google Cloud Run free tier (same image, needs a billing account), Render free (0.1 CPU: too slow for a class),
       a ~$5–7/month server. Later: a custom domain.
+- [x] Free hosting route (10 Nov 2026, owner: no paid platform for now): **static site, model in the browser**.
+      `web/core.py` (logic, no server) + `web/api.py` (FastAPI) + `web/browser.py` (Pyodide); `scripts/build_static.py`.
+      Same answers as the server; first visit 42 MB, ready ~19 s; runs ~1 s. Checked in headless Chrome.
+- [ ] Publish `dist/static-site` (GitHub Pages from the repo, or Cloudflare Pages / HF Static Space); owner's go-ahead.
+      A free `.com.np` domain (Mercantile registry, citizenship copy) can point at it later.
+- [ ] Lighter first visit: replace scipy's `brentq`/`ndtr` in `smb.py` with exact pure-Python ports (−14 MB, scipy
+      only needed then for site preparation), check results unchanged; a service worker so repeat visits skip the
+      network.
 - [x] Licence: AGPL-3.0-or-later (Oct 2026).
 - [ ] Citation file, contributor guide, docs site.
 

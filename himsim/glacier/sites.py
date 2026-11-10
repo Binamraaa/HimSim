@@ -14,7 +14,6 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
-from rasterio.features import rasterize
 from scipy.ndimage import label
 
 from himsim.dem import geoid_undulation, read_copernicus, read_srtm
@@ -127,6 +126,8 @@ def _outline_mask(site: GlacierSite, grid: Grid) -> np.ndarray:
     with open(site.outline_geojson) as f:
         gj = json.load(f)
     geoms = [feat["geometry"] for feat in gj["features"]] if gj.get("type") == "FeatureCollection" else [gj]
+    from rasterio.features import rasterize
+
     return rasterize(geoms, out_shape=grid.shape, transform=grid.transform, fill=0, default_value=1).astype(bool)
 
 

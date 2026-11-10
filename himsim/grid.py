@@ -3,6 +3,9 @@
 Every array in the model lives on a ``Grid``: a north-up raster in a projected CRS.
 Row 0 is the northern edge, so the row index increases southward. The physics only
 uses index-space differences, so this orientation never needs special handling.
+
+rasterio is imported inside the functions that read rasters, so the model itself (and the in-browser website, where
+rasterio is unavailable) can use ``Grid`` without it.
 """
 
 from __future__ import annotations
@@ -10,11 +13,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from typing import TYPE_CHECKING
+
 import numpy as np
-import rasterio
-from rasterio.fill import fillnodata
-from rasterio.transform import Affine, from_origin
-from rasterio.warp import Resampling, reproject
+
+if TYPE_CHECKING:
+    from rasterio.transform import Affine
+    from rasterio.warp import Resampling
 
 
 @dataclass(frozen=True)
@@ -40,6 +45,8 @@ class Grid:
 
     @property
     def transform(self) -> Affine:
+        from rasterio.transform import from_origin
+
         return from_origin(self.xmin, self.ymax, self.dx, self.dx)
 
     @property
@@ -57,12 +64,16 @@ class Grid:
         return self.ymax - (np.arange(self.ny) + 0.5) * self.dx
 
 
-def read_on_grid(path: str | Path, grid: Grid, resampling: Resampling = Resampling.average) -> np.ndarray:
+def read_on_grid(path: str | Path, grid: Grid, resampling: Resampling | None = None) -> np.ndarray:
     """Reproject band 1 of a raster onto ``grid``. Cells without data become NaN.
 
-    ``average`` resampling is the right default when coarsening high-resolution DEMs
+    ``average`` resampling (the default) is right when coarsening high-resolution DEMs
     (1-10 m) onto the model grid (25-100 m).
     """
+    import rasterio
+    from rasterio.warp import Resampling, reproject
+
+    resampling = Resampling.average if resampling is None else resampling
     out = np.full(grid.shape, np.nan, dtype=np.float64)
     with rasterio.open(path) as src:
         reproject(
@@ -81,6 +92,9 @@ def read_on_grid(path: str | Path, grid: Grid, resampling: Resampling = Resampli
 
 def coverage_on_grid(path: str | Path, grid: Grid) -> np.ndarray:
     """Fraction (0-1) of each grid cell covered by valid pixels of the raster."""
+    import rasterio
+    from rasterio.warp import Resampling, reproject
+
     with rasterio.open(path) as src:
         valid = (src.read_masks(1) > 0).astype(np.float32)
         out = np.zeros(grid.shape, dtype=np.float32)
@@ -98,6 +112,8 @@ def coverage_on_grid(path: str | Path, grid: Grid) -> np.ndarray:
 
 def fill_gaps(arr: np.ndarray, max_search_cells: int = 200) -> np.ndarray:
     """Fill NaN holes by inverse-distance interpolation from surrounding valid cells."""
+    from rasterio.fill import fillnodata
+
     valid = np.isfinite(arr)
     if valid.all():
         return arr.copy()

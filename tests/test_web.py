@@ -25,7 +25,7 @@ def client():
 def test_static_site_is_served(client):
     page = client.get("/")
     assert page.status_code == 200 and "HimSim" in page.text
-    for asset in ("styles.css", "app.js", "guide.js"):
+    for asset in ("styles.css", "transport.js", "app.js", "guide.js"):
         assert (STATIC / asset).exists() and asset in page.text
     js = client.get("/vendor/plotly.min.js")
     assert js.status_code == 200 and len(js.content) > 1_000_000  # served from the installed plotly package
@@ -78,9 +78,9 @@ def test_deploy_bundle_round_trip(tmp_path, monkeypatch):
     """The website gives the same answers from the deploy bundle (no DEMs, no station files) as from the raw data."""
     import numpy as np
 
-    from web import api, bundle
+    from web import bundle, core
 
-    built = api.build_model(with_station_summary=True)
+    built = core.build_model(with_station_summary=True)
     path = bundle.save(built, tmp_path / "bundle.pkl.gz")
     assert path.stat().st_size < 5_000_000  # small enough for any free host
     loaded = bundle.load(path)
@@ -91,10 +91,10 @@ def test_deploy_bundle_round_trip(tmp_path, monkeypatch):
         flat = json.dumps(built.stations)
         assert len(flat) < 2000 and set(built.stations) == {"bias", "base_camp", "on_ice_colder"}
 
-    original = api.reality()
-    monkeypatch.setattr(api, "_model", loaded)
-    monkeypatch.setattr(api, "_stations", lambda: {})  # as on a host without the ICIMOD files
-    from_bundle = api.reality()
+    original = core.reality()
+    monkeypatch.setattr(core, "_model", loaded)
+    monkeypatch.setattr(core, "_stations", lambda: {})  # as on a host without the ICIMOD files
+    from_bundle = core.reality()
     if built.stations:
         assert from_bundle == original
     else:
@@ -108,3 +108,77 @@ def test_reality_and_learn_pages(client):
     assert r["bands_figure"]["data"] and r["method"]["sources"]
     learn = client.get("/api/learn").json()
     assert "<h" in learn["explainer_html"] and learn["climate"]["annual_figure"]["data"]
+
+
+def test_in_browser_door_matches_the_server(client):
+    """web/browser.py (run by pyworker.js on the static site) answers every page exactly like the HTTP API."""
+    from web import browser
+
+    def same(path, body=None):
+        http = client.post(path, json=body) if body is not None else client.get(path)
+        assert http.status_code == 200, path
+        out = json.loads(browser.handle(path, json.dumps(body) if body is not None else None))
+        assert out["status"] == 200 and out["data"] == http.json(), path
+
+    for path in ("/api/overview", "/api/presets", "/api/reality", "/api/learn", "/api/past-3d",
+                 "/api/future-3d?warming=3&precip_pct=-10&gradual=false&end_year=2150",
+                 "/api/future-maps?warming=1.5&precip_pct=0&gradual=true&end_year=2100&year=2060"):
+        same(path)
+    same("/api/future", {"scenario": {"warming": 2.5, "precip_pct": 10, "gradual": True, "end_year": 2100},
+                         "kept": [{"warming": 1.0, "precip_pct": 0, "gradual": True, "end_year": 2100}]})
+
+
+def test_in_browser_door_rejects_bad_input():
+    from web import browser
+
+    def status(path, body=None):
+        return json.loads(browser.handle(path, json.dumps(body) if body is not None else None))["status"]
+
+    assert status("/api/future-3d?warming=9") == 422
+    assert status("/api/future-3d?precip_pct=2.5") == 422
+    assert status("/api/future-3d?gradual=maybe") == 422
+    assert status("/api/future-3d?warming=nan") == 422
+    assert status("/api/future-maps?warming=1") == 422  # year missing
+    assert status("/api/future", {"scenario": {"warming": "hot"}}) == 422
+    assert status("/api/future", {"scenario": {"warming": 1, "colour": "red"}}) == 422
+    assert status("/api/future", {"kept": [{}] * (browser.core.MAX_KEPT + 1)}) == 422
+    assert status("/api/nothing") == 404
+
+
+def test_core_needs_no_server_or_map_libraries():
+    """web.core and web.browser must import without FastAPI, pydantic, rasterio or pyproj: Pyodide has none of them."""
+    import subprocess
+    import sys
+
+    code = ("import sys\n"
+            "class Block:\n"
+            "    def find_spec(self, name, path=None, target=None):\n"
+            "        if name.split('.')[0] in ('fastapi', 'pydantic', 'starlette', 'rasterio', 'pyproj', 'streamlit'):\n"
+            "            raise ImportError('blocked: ' + name)\n"
+            "sys.meta_path.insert(0, Block())\n"
+            "import web.core, web.browser, web.bundle\n")
+    root = Path(__file__).resolve().parents[1]
+    r = subprocess.run([sys.executable, "-c", code], cwd=root, capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+
+
+def test_static_site_code_package(tmp_path, monkeypatch):
+    """scripts/build_static.py ships the model, the server-free web modules and the glacier, but not the server."""
+    import importlib.util
+    import zipfile
+
+    root = Path(__file__).resolve().parents[1]
+    spec = importlib.util.spec_from_file_location("build_static", root / "scripts" / "build_static.py")
+    build = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(build)
+    if not build.BUNDLE.exists():
+        pytest.skip("no deploy bundle built")
+    build.code_zip(tmp_path / "code.zip")
+    names = set(zipfile.ZipFile(tmp_path / "code.zip").namelist())
+    assert {"web/core.py", "web/browser.py", "web/bundle.py", "web/data/yala_bundle.pkl.gz", "app/how_it_works.md",
+            "himsim/glacier/model.py", "himsim/climate/data/kyanjin_monthly.csv",
+            "himsim/glacier/outlines/yala_rgi60.geojson"} <= names
+    assert "web/api.py" not in names and not any("__pycache__" in n for n in names)
+    assert not any(n.endswith((".tif", ".csv")) and "AWS" in n for n in names)  # never raw station or DEM files
+    page = (STATIC / "index.html").read_text(encoding="utf-8")
+    assert "transport.js" in page and 'src="vendor/plotly.min.js"' in page  # relative: works on any host path
