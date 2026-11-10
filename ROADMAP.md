@@ -118,8 +118,10 @@ became a debris flood that reached Rasuwagadhi in ~7.5 minutes. That is a **mass
 - [x] Free hosting route (10 Nov 2026, owner: no paid platform for now): **static site, model in the browser**.
       `web/core.py` (logic, no server) + `web/api.py` (FastAPI) + `web/browser.py` (Pyodide); `scripts/build_static.py`.
       Same answers as the server; first visit 42 MB, ready ~19 s; runs ~1 s. Checked in headless Chrome.
-- [ ] Publish `dist/static-site` (GitHub Pages from the repo, or Cloudflare Pages / HF Static Space); owner's go-ahead.
-      A free `.com.np` domain (Mercantile registry, citizenship copy) can point at it later.
+- [x] **Published (10 Nov 2026): https://binamraaa.github.io/HimSim/** (GitHub Pages, `gh-pages` branch = the built
+      `dist/static-site`). Live check in headless Chrome: model ready ~28 s on a first visit, all pages, no errors.
+      To update: `python scripts/build_static.py`, then replace the `gh-pages` branch contents with `dist/static-site`.
+- [ ] Custom domain: a free `.com.np` (Mercantile registry, needs the owner's citizenship copy) pointed at Pages.
 - [ ] Lighter first visit: replace scipy's `brentq`/`ndtr` in `smb.py` with exact pure-Python ports (−14 MB, scipy
       only needed then for site preparation), check results unchanged; a service worker so repeat visits skip the
       network.
